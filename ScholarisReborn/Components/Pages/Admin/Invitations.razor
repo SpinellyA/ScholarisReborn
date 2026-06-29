@@ -1,5 +1,5 @@
 @page "/admin/invitations"
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @attribute [Authorize(Roles = $"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")]
 @using System.Security.Claims
 @using MediatR
