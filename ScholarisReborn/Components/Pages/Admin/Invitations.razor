@@ -52,6 +52,12 @@
                     }
                 </MudSelect>
             </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudNumericField T="int" Label="Batch number" @bind-Value="_batchNumber" Min="1" />
+            </MudItem>
+            <MudItem xs="12" sm="9">
+                <MudTextField @bind-Value="_degreeProgram" Label="Degree program" />
+            </MudItem>
         }
 
         <MudItem xs="12" sm="3">
@@ -112,6 +118,8 @@ else
     private string _email = string.Empty;
     private Guid _schoolId;
     private Guid _scholarshipId;
+    private int _batchNumber = DateTime.UtcNow.Year;
+    private string _degreeProgram = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -148,10 +156,11 @@ else
             }
             else
             {
-                await Mediator.Send(new InviteScholarCommand(_currentUserId, _email, _schoolId, _scholarshipId));
+                await Mediator.Send(new InviteScholarCommand(_currentUserId, _email, _schoolId, _scholarshipId, _batchNumber, _degreeProgram));
             }
 
             _email = string.Empty;
+            _degreeProgram = string.Empty;
             Snackbar.Add("Invitation sent.", Severity.Success);
             await LoadInvitationsAsync();
         }

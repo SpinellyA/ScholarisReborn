@@ -11,3 +11,5 @@ public interface IScholarshipRepository : IRepository<Scholarship> { }
 public interface ISchoolRepository : IRepository<School> { }
 
 public interface IStipendDropRepository : IRepository<StipendDrop> { }
+
+public interface IStoredFileRepository : IRepository<StoredFile> { }

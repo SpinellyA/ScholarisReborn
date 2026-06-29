@@ -1,22 +1,21 @@
-﻿public record GradeTranscript
+public record GradeTranscript
 {
-    public string TrueCopyOfGradesURL { get; private init; } = string.Empty;
+    // Nullable: a first-year scholar with no prior-term courses submits grades-less (file optional).
+    public Guid? FileId { get; private init; }
     public double GWA { get; private init; }
     public List<CourseRecord> CourseRecords { get; private init; } = new();
 
     private GradeTranscript() { }
 
-    public static GradeTranscript Create(string url, List<CourseRecord> records)
+    public static GradeTranscript Create(Guid? fileId, List<CourseRecord> records)
     {
-        if (string.IsNullOrWhiteSpace(url))
-            throw new DomainException("Grade transcript URL cannot be empty.");
         if (records is null || !records.Any())
             throw new DomainException("Grade transcript must have at least one course record.");
 
         double gwa = CalculateGWA(records);
         return new GradeTranscript
         {
-            TrueCopyOfGradesURL = url,
+            FileId = fileId,
             CourseRecords = records,
             GWA = gwa
         };
@@ -29,4 +28,3 @@
         return totalUnits > 0 ? totalWeighted / totalUnits : 0;
     }
 }
-

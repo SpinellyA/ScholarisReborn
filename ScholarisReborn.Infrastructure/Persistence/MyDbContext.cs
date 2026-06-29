@@ -14,6 +14,7 @@ public class MyDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, G
     public DbSet<Scholarship> Scholarships => Set<Scholarship>();
     public DbSet<TermRecord> TermRecords => Set<TermRecord>();
     public DbSet<StipendDrop> StipendDrops => Set<StipendDrop>();
+    public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

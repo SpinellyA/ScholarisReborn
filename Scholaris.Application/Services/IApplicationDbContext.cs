@@ -9,4 +9,5 @@ public interface IApplicationDbContext
     DbSet<Scholarship> Scholarships { get; }
     DbSet<TermRecord> TermRecords { get; }
     DbSet<StipendDrop> StipendDrops { get; }
+    DbSet<StoredFile> StoredFiles { get; }
 }

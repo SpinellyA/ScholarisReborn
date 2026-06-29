@@ -19,15 +19,31 @@ public class InvitationDomainTests
     }
 
     [Fact]
-    public void Create_ScholarInvitation_WithSchoolAndScholarship_Succeeds()
+    public void Create_ScholarInvitation_WithSchoolScholarshipBatchAndProgram_Succeeds()
     {
         var schoolId = Guid.NewGuid();
         var scholarshipId = Guid.NewGuid();
 
-        var invitation = Invitation.Create("scholar@example.com", InvitationType.Scholar, Guid.NewGuid(), schoolId, scholarshipId);
+        var invitation = Invitation.Create("scholar@example.com", InvitationType.Scholar, Guid.NewGuid(), schoolId, scholarshipId, 2024, "BS Computer Science");
 
         Assert.Equal(schoolId, invitation.SchoolId);
         Assert.Equal(scholarshipId, invitation.ScholarshipId);
+        Assert.Equal(2024, invitation.BatchNumber);
+        Assert.Equal("BS Computer Science", invitation.DegreeProgram);
+    }
+
+    [Fact]
+    public void Create_ScholarInvitation_WithoutBatchNumber_Throws()
+    {
+        Assert.Throws<DomainException>(() =>
+            Invitation.Create("scholar@example.com", InvitationType.Scholar, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), degreeProgram: "BS CS"));
+    }
+
+    [Fact]
+    public void Create_ScholarInvitation_WithoutDegreeProgram_Throws()
+    {
+        Assert.Throws<DomainException>(() =>
+            Invitation.Create("scholar@example.com", InvitationType.Scholar, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), batchNumber: 2024));
     }
 
     [Fact]

@@ -17,6 +17,8 @@ public class InviteScholarCommandHandler : ICommandHandler<InviteScholarCommand>
             command.invitedByAdminId,
             command.schoolId,
             command.scholarshipId,
+            command.BatchNumber,
+            command.DegreeProgram,
             seedData);
 
         _uow.InvitationRepository.Add(invitation);

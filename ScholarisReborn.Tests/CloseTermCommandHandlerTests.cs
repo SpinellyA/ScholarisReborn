@@ -32,17 +32,17 @@ public class CloseTermCommandHandlerTests
 
             var scholarshipId = Guid.NewGuid();
 
-            var submittedScholar = Scholar.Create(Guid.NewGuid(), schoolId, scholarshipId);
+            var submittedScholar = Scholar.Create(Guid.NewGuid(), schoolId, scholarshipId, 2024, "BS Computer Science");
             submittedScholarId = submittedScholar.Id;
             uow.ScholarRepository.Add(submittedScholar);
 
-            var unsubmittedScholar = Scholar.Create(Guid.NewGuid(), schoolId, scholarshipId);
+            var unsubmittedScholar = Scholar.Create(Guid.NewGuid(), schoolId, scholarshipId, 2024, "BS Computer Science");
             unsubmittedScholarId = unsubmittedScholar.Id;
             uow.ScholarRepository.Add(unsubmittedScholar);
 
-            var record = TermRecord.Create(submittedScholarId, termId);
-            record.SubmitTranscript(GradeTranscript.Create("url", [CourseRecord.Create(Course.Create("CS101", 3), 1.0)]));
-            record.SubmitPOR(ProofOfRegistration.Create("url", [Course.Create("CS101", 3)]));
+            var record = TermRecord.Create(submittedScholarId, termId, gradesRequired: true);
+            record.SubmitTranscript(GradeTranscript.Create(Guid.NewGuid(), [CourseRecord.Create(Course.Create("CS101", 3), 1.0)]));
+            record.SubmitPOR(ProofOfRegistration.Create(Guid.NewGuid(), [Course.Create("CS101", 3)]));
             uow.TermRepository.Add(record);
 
             await uow.SaveChangesAsync();

@@ -2,6 +2,8 @@
 {
     public Guid Id { get; private set; }
     public Region Region { get; private set; }
+    public double Amount { get; private set; }
+    public string Description { get; private set; } = string.Empty;
     public DateTime AnnouncedAt { get; private set; }
 
     private List<StipendReceipt> _receipts = new();
@@ -9,12 +11,16 @@
 
     private StipendDrop() { }
 
-    public static StipendDrop Announce(Region region)
+    public static StipendDrop Announce(Region region, double amount, string description)
     {
+        if (amount < 0) throw new DomainException("Stipend amount cannot be negative.");
+
         var drop = new StipendDrop
         {
             Id = Guid.CreateVersion7(),
             Region = region,
+            Amount = amount,
+            Description = description ?? string.Empty,
             AnnouncedAt = DateTime.UtcNow
         };
         drop.RaiseEvent(new StipendDropAnnouncedEvent(drop.Id, region, drop.AnnouncedAt));

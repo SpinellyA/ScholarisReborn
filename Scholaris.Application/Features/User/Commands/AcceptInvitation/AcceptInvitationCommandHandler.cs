@@ -42,7 +42,12 @@ public class AcceptInvitationCommandHandler : ICommandHandler<AcceptInvitationCo
 
         if (invitation.Type == InvitationType.Scholar)
         {
-            var scholar = Scholar.Create(userId, invitation.SchoolId!.Value, invitation.ScholarshipId!.Value);
+            var scholar = Scholar.Create(
+                userId,
+                invitation.SchoolId!.Value,
+                invitation.ScholarshipId!.Value,
+                invitation.BatchNumber!.Value,
+                invitation.DegreeProgram!);
             _uow.ScholarRepository.Add(scholar);
         }
 

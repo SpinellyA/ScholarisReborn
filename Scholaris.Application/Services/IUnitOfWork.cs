@@ -10,6 +10,7 @@ public interface IUnitOfWork : IDisposable, IAsyncDisposable
     IScholarshipRepository ScholarshipRepository { get; }
     ISchoolRepository SchoolRepository { get; }
     IStipendDropRepository StipendDropRepository { get; }
+    IStoredFileRepository StoredFileRepository { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task<IDbContextTransaction> BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default);

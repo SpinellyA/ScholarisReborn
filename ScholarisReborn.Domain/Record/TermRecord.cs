@@ -6,12 +6,16 @@
     public RecordStatus Status { get; private set; }
     public Guid? ProcessedByAdminId { get; private set; }
 
+    // False for a first-year scholar with no prior-term courses to report grades for: a PoR alone
+    // is a complete submission. True for returning scholars, who must also submit a grade transcript.
+    public bool GradesRequired { get; private set; }
+
     public GradeTranscript? GradeTranscript { get; private set; }
     public ProofOfRegistration? ProofOfRegistration { get; private set; }
 
     private TermRecord() { }
 
-    public static TermRecord Create(Guid scholarId, Guid termId)
+    public static TermRecord Create(Guid scholarId, Guid termId, bool gradesRequired)
     {
         if (scholarId == Guid.Empty) throw new DomainException("ScholarId cannot be empty.");
         if (termId == Guid.Empty) throw new DomainException("TermId cannot be empty.");
@@ -21,6 +25,7 @@
             Id = Guid.CreateVersion7(),
             ScholarId = scholarId,
             TermId = termId,
+            GradesRequired = gradesRequired,
             Status = RecordStatus.Pending
         };
     }
@@ -43,7 +48,7 @@
 
     private void TryMarkAsSubmitted()
     {
-        if (GradeTranscript is not null && ProofOfRegistration is not null)
+        if (ProofOfRegistration is not null && (!GradesRequired || GradeTranscript is not null))
             RaiseEvent(new TermRecordSubmittedEvent(Id, ScholarId));
     }
 
@@ -79,8 +84,10 @@
 
     private void EnsureComplete()
     {
-        if (GradeTranscript is null || ProofOfRegistration is null)
-            throw new DomainException("Record must have both a grade transcript and proof of registration before processing.");
+        if (ProofOfRegistration is null)
+            throw new DomainException("Record must have a proof of registration before processing.");
+        if (GradesRequired && GradeTranscript is null)
+            throw new DomainException("Record must have a grade transcript before processing.");
     }
 
     private void EnsureProcessable()
