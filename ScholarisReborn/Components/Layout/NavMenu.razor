@@ -3,6 +3,13 @@
     <MudText Typo="Typo.body2" Class="scholaris-nav-section">Overview</MudText>
     <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
 
+    <AuthorizeView Roles="@ApplicationRoles.Scholar">
+        <Authorized>
+            <MudText Typo="Typo.body2" Class="scholaris-nav-section">Scholar</MudText>
+            <MudNavLink Href="submit" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.UploadFile">Submit Report</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
+
     <AuthorizeView Roles="@($"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")">
         <Authorized>
             <MudText Typo="Typo.body2" Class="scholaris-nav-section">Administration</MudText>

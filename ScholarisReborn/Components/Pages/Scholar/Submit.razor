@@ -1,0 +1,244 @@
+@page "/submit"
+@rendermode RenderModes.InteractiveServerNoPrerender
+@attribute [Authorize(Roles = ApplicationRoles.Scholar)]
+@using System.Security.Claims
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<InteractiveProviders />
+
+<PageTitle>Submit Requirements</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Submit Requirements</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_ctx is null || !_ctx.HasOpenTerm)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        There is no open term for your school right now. Submissions are closed — check back when an administrator opens the next term.
+    </MudAlert>
+}
+else
+{
+    <MudText Typo="Typo.body1" Class="mb-4">
+        @_ctx.SchoolName &middot; Term @_ctx.TermNumber
+        @if (_ctx.Status is not null)
+        {
+            <MudChip T="string" Size="Size.Small" Class="ml-2" Color="@StatusColor(_ctx.Status.Value)">@_ctx.Status</MudChip>
+        }
+    </MudText>
+
+    <MudExpansionPanels MultiExpansion="true" Elevation="1">
+
+        <MudExpansionPanel Text="Registration Report (Proof of Registration)" Expanded="true">
+            <MudPaper Class="pa-4" Elevation="0">
+                @if (_ctx.PorSubmitted)
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-4">
+                        Your proof of registration for this term has been submitted. Re-submitting will replace it.
+                    </MudAlert>
+                }
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Courses you are enrolled in this term</MudText>
+
+                @if (_courses.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mb-2">No courses yet — add one below.</MudText>
+                }
+                @foreach (var course in _courses)
+                {
+                    <MudStack Row="true" Spacing="2" Class="mb-2" AlignItems="AlignItems.Center" @key="course">
+                        <MudTextField @bind-Value="course.Code" Label="Course code" />
+                        <MudNumericField @bind-Value="course.Units" Label="Units" Min="0.0" Style="max-width:140px" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _courses.Remove(course))" />
+                    </MudStack>
+                }
+
+                <MudButton OnClick="AddCourse" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Class="mt-2">
+                    Add course
+                </MudButton>
+
+                <MudDivider Class="my-4" />
+
+                <MudFileUpload T="IBrowserFile" FilesChanged="@((IBrowserFile f) => _porFile = f)">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AttachFile">
+                            Attach registration document
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+                @if (_porFile is not null)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-2">Selected: @_porFile.Name</MudText>
+                }
+
+                <div class="d-flex justify-end mt-4">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitPorAsync" Disabled="_busy">
+                        Submit registration
+                    </MudButton>
+                </div>
+            </MudPaper>
+        </MudExpansionPanel>
+
+        <MudExpansionPanel Text="Semestral Grade Report (True Copy of Grades)">
+            <MudPaper Class="pa-4" Elevation="0">
+                @if (_ctx.PriorCourses.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                        You have no courses from a previous term to report grades for (this is normal for first-year scholars).
+                        Just submit your registration above — no grade report is required this term.
+                    </MudAlert>
+                }
+                else
+                {
+                    @if (_ctx.GradesSubmitted)
+                    {
+                        <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-4">
+                            Your grades for this term have been submitted. Re-submitting will replace them.
+                        </MudAlert>
+                    }
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Grades for last term's courses</MudText>
+
+                    @foreach (var grade in _grades)
+                    {
+                        <MudStack Row="true" Spacing="2" Class="mb-2" AlignItems="AlignItems.Center" @key="grade">
+                            <MudTextField Value="grade.Code" Label="Course" ReadOnly="true" />
+                            <MudNumericField @bind-Value="grade.Units" Label="Units" ReadOnly="true" Style="max-width:120px" />
+                            <MudNumericField @bind-Value="grade.Grade" Label="Grade" Min="0.0" Max="5.0" Step="0.01" Style="max-width:140px" />
+                        </MudStack>
+                    }
+
+                    <MudDivider Class="my-4" />
+
+                    <MudFileUpload T="IBrowserFile" FilesChanged="@((IBrowserFile f) => _gradeFile = f)">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AttachFile">
+                                Attach grade report (optional)
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                    @if (_gradeFile is not null)
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2">Selected: @_gradeFile.Name</MudText>
+                    }
+
+                    <div class="d-flex justify-end mt-4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitGradesAsync" Disabled="_busy">
+                            Submit grades
+                        </MudButton>
+                    </div>
+                }
+            </MudPaper>
+        </MudExpansionPanel>
+
+    </MudExpansionPanels>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private Guid _userId;
+    private bool _loading = true;
+    private bool _busy;
+    private SubmissionContextDto? _ctx;
+
+    private readonly List<CourseRow> _courses = new();
+    private readonly List<GradeRow> _grades = new();
+
+    private IBrowserFile? _porFile;
+    private IBrowserFile? _gradeFile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is not null)
+        {
+            var state = await AuthStateTask;
+            var id = state.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (id is not null) _userId = Guid.Parse(id);
+        }
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _ctx = await Mediator.Send(new GetSubmissionContextQuery(_userId));
+        _grades.Clear();
+        if (_ctx is not null)
+        {
+            foreach (var c in _ctx.PriorCourses)
+                _grades.Add(new GradeRow { Code = c.CourseCode, Units = c.Units });
+        }
+        _loading = false;
+    }
+
+    private void AddCourse() => _courses.Add(new CourseRow());
+
+    private async Task SubmitPorAsync()
+    {
+        if (_porFile is null)
+        {
+            Snackbar.Add("Please attach your registration document.", Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var bytes = await ReadAsync(_porFile);
+            await Mediator.Send(new SubmitProofOfRegistrationCommand(
+                _userId, _porFile.Name, _porFile.ContentType, bytes,
+                _courses.Select(c => new PorCourseInput(c.Code, c.Units)).ToList()));
+
+            Snackbar.Add("Registration submitted.", Severity.Success);
+            _porFile = null;
+            await LoadAsync();
+        }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task SubmitGradesAsync()
+    {
+        _busy = true;
+        try
+        {
+            byte[]? bytes = _gradeFile is null ? null : await ReadAsync(_gradeFile);
+            await Mediator.Send(new SubmitGradeTranscriptCommand(
+                _userId, _gradeFile?.Name, _gradeFile?.ContentType, bytes,
+                _grades.Select(g => new GradeInput(g.Code, g.Units, g.Grade)).ToList()));
+
+            Snackbar.Add("Grades submitted.", Severity.Success);
+            _gradeFile = null;
+            await LoadAsync();
+        }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private static async Task<byte[]> ReadAsync(IBrowserFile file)
+    {
+        using var ms = new MemoryStream();
+        await using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024); // 10 MB
+        await stream.CopyToAsync(ms);
+        return ms.ToArray();
+    }
+
+    private static Color StatusColor(RecordStatus status) => status switch
+    {
+        RecordStatus.Approved => Color.Success,
+        RecordStatus.Pending => Color.Warning,
+        RecordStatus.Deferred => Color.Info,
+        RecordStatus.Denied => Color.Error,
+        _ => Color.Default
+    };
+
+    private class CourseRow { public string Code { get; set; } = string.Empty; public double Units { get; set; } }
+    private class GradeRow { public string Code { get; set; } = string.Empty; public double Units { get; set; } public double Grade { get; set; } }
+}
