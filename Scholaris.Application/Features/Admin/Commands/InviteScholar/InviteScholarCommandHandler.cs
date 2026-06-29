@@ -14,7 +14,7 @@ public class InviteScholarCommandHandler : ICommandHandler<InviteScholarCommand>
 
     public async Task Handle(InviteScholarCommand command, CancellationToken cancellationToken)
     {
-        var invitation = Invitation.Create(command.Email, InvitationType.Scholar, command.invitedByAdminId, command.scholarshipId);
+        var invitation = Invitation.Create(command.Email, InvitationType.Scholar, command.invitedByAdminId, command.schoolId, command.scholarshipId);
 
         _uow.InvitationRepository.Add(invitation);
         await _uow.SaveChangesAsync();

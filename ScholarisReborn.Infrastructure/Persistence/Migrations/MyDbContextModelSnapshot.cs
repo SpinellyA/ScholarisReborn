@@ -133,10 +133,19 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("InvitedByAdminId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsUsed")
                         .HasColumnType("boolean");
 
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid?>("ScholarshipId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SchoolId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("Token")
@@ -264,7 +273,10 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("ScholarshipId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("StudentId")
+                    b.Property<Guid>("SchoolId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
@@ -346,23 +358,6 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                     b.ToTable("StipendDrops", (string)null);
                 });
 
-            modelBuilder.Entity("Student", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("SchoolId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Students", (string)null);
-                });
-
             modelBuilder.Entity("TermRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -407,6 +402,48 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("Invitation", b =>
+                {
+                    b.OwnsOne("InvitationSeedData", "SeedData", b1 =>
+                        {
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
+
+                            b1.Property<string>("Address")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("ContactNumber")
+                                .HasColumnType("text");
+
+                            b1.Property<DateTime?>("DateOfBirth")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<string>("FirstName")
+                                .HasColumnType("text");
+
+                            b1.Property<Guid>("InvitationId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<string>("LastName")
+                                .HasColumnType("text");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("InvitationId")
+                                .IsUnique();
+
+                            b1.ToTable("InvitationSeedData", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("InvitationId");
+                        });
+
+                    b.Navigation("SeedData");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -753,6 +790,45 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("User", b =>
                 {
+                    b.OwnsOne("UserProfile", "Profile", b1 =>
+                        {
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("integer");
+
+                            NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b1.Property<int>("Id"));
+
+                            b1.Property<string>("Address")
+                                .HasColumnType("text");
+
+                            b1.Property<string>("ContactNumber")
+                                .HasColumnType("text");
+
+                            b1.Property<DateTime?>("DateOfBirth")
+                                .HasColumnType("timestamp with time zone");
+
+                            b1.Property<string>("FirstName")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<string>("LastName")
+                                .IsRequired()
+                                .HasColumnType("text");
+
+                            b1.Property<Guid>("UserId")
+                                .HasColumnType("uuid");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("UserId")
+                                .IsUnique();
+
+                            b1.ToTable("UserProfiles", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
                     b.OwnsMany("UserStatus", "Statuses", b1 =>
                         {
                             b1.Property<int>("Id")
@@ -784,6 +860,8 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("UserId");
                         });
+
+                    b.Navigation("Profile");
 
                     b.Navigation("Statuses");
                 });

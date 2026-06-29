@@ -4,7 +4,6 @@ public interface IApplicationDbContext
 {
     DbSet<Invitation> Invitations { get; }
     DbSet<User> DomainUsers { get; }
-    DbSet<Student> Students { get; }
     DbSet<Scholar> Scholars { get; }
     DbSet<School> Schools { get; }
     DbSet<Scholarship> Scholarships { get; }

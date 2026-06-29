@@ -1,9 +1,10 @@
 ﻿public record UserRegisteredEvent(Guid UserId, string Email) : DomainEvent;
 public record InvitationCreatedEvent(Guid id, string Email, InvitationType type, Guid token) : DomainEvent;
 public record InvitationAcceptedEvent(Guid id, string Email, InvitationType type) : DomainEvent;
+public record InvitationRevokedEvent(Guid Id, string Email) : DomainEvent;
 
 
-public record ScholarActivatedEvent(Guid ScholarId, Guid StudentId) : DomainEvent;
+public record ScholarActivatedEvent(Guid ScholarId, Guid UserId) : DomainEvent;
 public record ScholarTerminatedEvent(Guid ScholarId, string Reason) : DomainEvent;
 public record ScholarWithheldEvent(Guid ScholarId, string Reason) : DomainEvent;
 public record ScholarGraduatedEvent(Guid ScholarId) : DomainEvent;
