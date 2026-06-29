@@ -1,7 +1,8 @@
 ﻿public class Scholar : AggregateRoot
 {
     public Guid Id { get; private set; }
-    public Guid StudentId { get; private set; }
+    public Guid UserId { get; private set; }
+    public Guid SchoolId { get; private set; }
     public Guid ScholarshipId { get; private set; }
 
     private List<ScholarStatus> _statuses = new();
@@ -10,21 +11,23 @@
 
     private Scholar() { }
 
-    public static Scholar Create(Guid studentId, Guid scholarshipId)
+    public static Scholar Create(Guid userId, Guid schoolId, Guid scholarshipId)
     {
-        if (studentId == Guid.Empty) throw new DomainException("StudentId cannot be empty.");
+        if (userId == Guid.Empty) throw new DomainException("UserId cannot be empty.");
+        if (schoolId == Guid.Empty) throw new DomainException("SchoolId cannot be empty.");
         if (scholarshipId == Guid.Empty) throw new DomainException("ScholarshipId cannot be empty.");
 
         var scholar = new Scholar
         {
             Id = Guid.CreateVersion7(),
-            StudentId = studentId,
+            UserId = userId,
+            SchoolId = schoolId,
             ScholarshipId = scholarshipId
         };
 
         var initialStatus = ScholarStatus.Create(ScholasticStatus.Active);
         scholar._statuses.Add(initialStatus);
-        scholar.RaiseEvent(new ScholarActivatedEvent(scholar.Id, studentId));
+        scholar.RaiseEvent(new ScholarActivatedEvent(scholar.Id, userId));
         return scholar;
     }
 
@@ -46,7 +49,7 @@
     {
         EnsureNotIn(ScholasticStatus.Terminated, ScholasticStatus.Graduated, ScholasticStatus.Active);
         TransitionTo(ScholasticStatus.Active);
-        RaiseEvent(new ScholarActivatedEvent(Id, StudentId));
+        RaiseEvent(new ScholarActivatedEvent(Id, UserId));
     }
 
     public void Graduate()

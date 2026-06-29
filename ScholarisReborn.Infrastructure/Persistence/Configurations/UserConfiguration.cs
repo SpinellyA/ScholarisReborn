@@ -11,6 +11,14 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Email).IsRequired().HasMaxLength(256);
         builder.Property(u => u.PasswordHash).HasMaxLength(512);
 
+        builder.OwnsOne(u => u.Profile, pb =>
+        {
+            pb.ToTable("UserProfiles");
+            pb.WithOwner().HasForeignKey("UserId");
+            pb.Property<int>("Id").ValueGeneratedOnAdd();
+            pb.HasKey("Id");
+        });
+
         builder.Metadata.FindNavigation(nameof(User.Statuses))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
 

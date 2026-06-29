@@ -9,7 +9,7 @@ public static class InfrastructureServiceCollectionExtensions
     // framework, which this class library doesn't reference.
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DOSTDB");
+        var connectionString = configuration.GetConnectionString("CHEDDB");
         services.AddDbContext<MyDbContext>(options => options.UseNpgsql(connectionString));
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<MyDbContext>());

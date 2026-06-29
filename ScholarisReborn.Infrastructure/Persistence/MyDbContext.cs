@@ -9,7 +9,6 @@ public class MyDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, G
 
     public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<User> DomainUsers => Set<User>();
-    public DbSet<Student> Students => Set<Student>();
     public DbSet<Scholar> Scholars => Set<Scholar>();
     public DbSet<School> Schools => Set<School>();
     public DbSet<Scholarship> Scholarships => Set<Scholarship>();

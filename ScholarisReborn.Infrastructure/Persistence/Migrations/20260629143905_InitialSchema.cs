@@ -60,10 +60,13 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                     Type = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
                     InvitedByAdminId = table.Column<Guid>(type: "uuid", nullable: false),
                     Token = table.Column<Guid>(type: "uuid", nullable: false),
+                    SchoolId = table.Column<Guid>(type: "uuid", nullable: true),
                     ScholarshipId = table.Column<Guid>(type: "uuid", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    IsUsed = table.Column<bool>(type: "boolean", nullable: false)
+                    IsUsed = table.Column<bool>(type: "boolean", nullable: false),
+                    IsRevoked = table.Column<bool>(type: "boolean", nullable: false),
+                    RevokedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -75,7 +78,8 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    StudentId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    SchoolId = table.Column<Guid>(type: "uuid", nullable: false),
                     ScholarshipId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
@@ -123,19 +127,6 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_StipendDrops", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Students",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    SchoolId = table.Column<Guid>(type: "uuid", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Students", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -273,6 +264,30 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "InvitationSeedData",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FirstName = table.Column<string>(type: "text", nullable: true),
+                    LastName = table.Column<string>(type: "text", nullable: true),
+                    DateOfBirth = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Address = table.Column<string>(type: "text", nullable: true),
+                    ContactNumber = table.Column<string>(type: "text", nullable: true),
+                    InvitationId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InvitationSeedData", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InvitationSeedData_Invitations_InvitationId",
+                        column: x => x.InvitationId,
+                        principalTable: "Invitations",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ScholarStatuses",
                 columns: table => new
                 {
@@ -401,6 +416,30 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserProfiles",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    FirstName = table.Column<string>(type: "text", nullable: false),
+                    LastName = table.Column<string>(type: "text", nullable: false),
+                    DateOfBirth = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    Address = table.Column<string>(type: "text", nullable: true),
+                    ContactNumber = table.Column<string>(type: "text", nullable: true),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserProfiles", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserProfiles_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "UserStatuses",
                 columns: table => new
                 {
@@ -522,6 +561,12 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_InvitationSeedData_InvitationId",
+                table: "InvitationSeedData",
+                column: "InvitationId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ScholarshipGrants_ScholarshipId",
                 table: "ScholarshipGrants",
                 column: "ScholarshipId");
@@ -570,6 +615,12 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                 column: "SchoolId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserProfiles_UserId",
+                table: "UserProfiles",
+                column: "UserId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserStatuses_UserId",
                 table: "UserStatuses",
                 column: "UserId");
@@ -594,7 +645,7 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "Invitations");
+                name: "InvitationSeedData");
 
             migrationBuilder.DropTable(
                 name: "ScholarshipGrants");
@@ -606,9 +657,6 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                 name: "StipendReceipts");
 
             migrationBuilder.DropTable(
-                name: "Students");
-
-            migrationBuilder.DropTable(
                 name: "TermRecordCourseRecordCourses");
 
             migrationBuilder.DropTable(
@@ -618,6 +666,9 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
                 name: "Terms");
 
             migrationBuilder.DropTable(
+                name: "UserProfiles");
+
+            migrationBuilder.DropTable(
                 name: "UserStatuses");
 
             migrationBuilder.DropTable(
@@ -625,6 +676,9 @@ namespace ScholarisReborn.Infrastructure.Persistence.Migrations
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "Invitations");
 
             migrationBuilder.DropTable(
                 name: "Scholarships");
