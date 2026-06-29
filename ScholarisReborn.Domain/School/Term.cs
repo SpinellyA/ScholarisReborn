@@ -15,7 +15,7 @@
             throw new DomainException("Term number must be positive.");
         return new Term
         {
-             
+            Id = Guid.CreateVersion7(),
             SchoolId = schoolId,
             TermNumber = termNumber,
             StartedAt = DateTime.UtcNow

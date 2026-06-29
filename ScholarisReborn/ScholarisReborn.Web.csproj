@@ -5,10 +5,15 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+    <RootNamespace>ScholarisReborn</RootNamespace>
   </PropertyGroup>
 
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="MudBlazor" Version="9.*" />
   </ItemGroup>
 
@@ -17,5 +22,17 @@
     <ProjectReference Include="..\Scholaris.Application\ScholarisReborn.Application.csproj" />
     <ProjectReference Include="..\ScholarisReborn.Domain\ScholarisReborn.Domain.csproj" />
     <ProjectReference Include="..\ScholarisReborn.Infrastructure\ScholarisReborn.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <!--
+    OLD_FRONTEND_ELEMENTS is reference-only design material from the previous unfinished build
+    (per-screen markup/viewmodels that don't compile as-is: missing usings, undefined DTOs, etc.).
+    It's excluded from compilation here; pieces get promoted into Components/Pages as they're wired
+    up to real data (see Phase 5 of the implementation plan).
+  -->
+  <ItemGroup>
+    <Compile Remove="OLD_FRONTEND_ELEMENTS\**\*.cs" />
+    <Content Remove="OLD_FRONTEND_ELEMENTS\**\*.razor" />
+    <RazorComponent Remove="OLD_FRONTEND_ELEMENTS\**\*.razor" />
   </ItemGroup>
 </Project>

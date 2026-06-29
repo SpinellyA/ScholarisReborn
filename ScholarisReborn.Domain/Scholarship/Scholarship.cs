@@ -14,7 +14,7 @@
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("Scholarship name cannot be empty.");
 
-        return new Scholarship {   Name = name, Description = description };
+        return new Scholarship { Id = Guid.CreateVersion7(), Name = name, Description = description };
     }
 
     public void AddGrant(FinancialGrant grant)

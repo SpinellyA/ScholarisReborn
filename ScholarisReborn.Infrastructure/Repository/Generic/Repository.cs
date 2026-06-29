@@ -1,4 +1,5 @@
 ﻿
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -25,6 +26,12 @@ public class Repository<T> : IRepository<T> where T : class
     public virtual async Task<T?> GetById(Guid id)
         => await _set.FindAsync(id);
 
+    public virtual async Task<List<T>> GetAllAsync(CancellationToken cancellationToken = default)
+        => await _set.AsNoTracking().ToListAsync(cancellationToken);
+
+    public virtual async Task<List<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
+        => await _set.AsNoTracking().Where(predicate).ToListAsync(cancellationToken);
+
     public virtual void Update(T entity)
         => _set.Update(entity);
 }
@@ -33,46 +40,32 @@ public class InvitationRepository : Repository<Invitation>, IInvitationRepositor
 {
     public InvitationRepository(MyDbContext context) : base(context)
     {
-        
+
     }
-}
-
-public interface IInvitationRepository : IRepository<Invitation>
-{
-
 }
 
 public class UserRepository : Repository<User>, IUserRepository
 {
     public UserRepository(MyDbContext context) : base(context)
     {
-        
+
     }
 }
-
-public interface IUserRepository : IRepository<User> { }
 
 public class TermRecordRepository : Repository<TermRecord>, ITermRepository
 {
     public TermRecordRepository(MyDbContext context) : base(context)
     {
-         
+
     }
 }
-
-public interface ITermRepository : IRepository<TermRecord> { }
 
 public class ScholarRepository : Repository<Scholar>, IScholarRepository
 {
     public ScholarRepository(MyDbContext context) : base(context)
     {
-         
+
     }
-}
-
-public interface IScholarRepository : IRepository<Scholar>
-{
-
 }
 
 public class ScholarshipRepository : Repository<Scholarship>, IScholarshipRepository
@@ -82,8 +75,6 @@ public class ScholarshipRepository : Repository<Scholarship>, IScholarshipReposi
     }
 }
 
-public interface IScholarshipRepository : IRepository<Scholarship> { }
-
 public class SchoolRepository : Repository<School>, ISchoolRepository
 {
     public SchoolRepository(MyDbContext context) : base(context)
@@ -91,14 +82,10 @@ public class SchoolRepository : Repository<School>, ISchoolRepository
     }
 }
 
-public interface ISchoolRepository : IRepository<School> { }
-
 public class StipendDropRepository : Repository<StipendDrop>, IStipendDropRepository
 {
     public StipendDropRepository(MyDbContext context) : base(context)
     {
     }
 }
-
-public interface IStipendDropRepository : IRepository<StipendDrop> { }
 

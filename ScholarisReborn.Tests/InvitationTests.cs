@@ -18,6 +18,7 @@ namespace ScholarisReborn.Tests
         [Fact]
         public async Task Handle_ShouldWriteRecordToDatabase()
         {
+            Console.WriteLine("Hello world!");
             var options = CreateNewContextOptions();
             var mockPublisher = new Mock<IPublisher>();
 
@@ -28,13 +29,22 @@ namespace ScholarisReborn.Tests
         }
 
         [Fact]
-        public async Task Handle_ShouldSendEmailOnCreation()
+        public async Task Handle_ShouldCreateAdminInvitation()
         {
             var options = CreateNewContextOptions();
             var mockPublisher = new Mock<IPublisher>();
 
-            var command = new 
+            using var context = new MyDbContext(options);
+            var uow = new UnitOfWork(context, mockPublisher.Object);
+            var handler = new InviteAdminCommandHandler(uow);
 
+            var command = new InviteAdminCommand(Guid.NewGuid(), "newadmin@example.com");
+
+            await handler.Handle(command, CancellationToken.None);
+
+            var invitation = Assert.Single(await uow.InvitationRepository.GetAllAsync());
+            Assert.Equal("newadmin@example.com", invitation.Email);
+            Assert.Equal(InvitationType.Admin, invitation.Type);
         }
     }
 }

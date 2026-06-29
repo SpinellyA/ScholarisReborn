@@ -13,7 +13,7 @@
     {
         var drop = new StipendDrop
         {
-             
+            Id = Guid.CreateVersion7(),
             Region = region,
             AnnouncedAt = DateTime.UtcNow
         };

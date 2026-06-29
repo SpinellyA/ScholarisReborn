@@ -1,13 +1,9 @@
 ﻿public record ProofOfRegistration
 {
-    public string ProofOfRegistrationURL { get; }
-    public IReadOnlyCollection<Course> Courses { get; }
+    public string ProofOfRegistrationURL { get; private init; } = string.Empty;
+    public List<Course> Courses { get; private init; } = new();
 
-    private ProofOfRegistration(string url, List<Course> courses)
-    {
-        ProofOfRegistrationURL = url;
-        Courses = courses.AsReadOnly();
-    }
+    private ProofOfRegistration() { }
 
     public static ProofOfRegistration Create(string url, List<Course> courses)
     {
@@ -15,7 +11,7 @@
             throw new DomainException("Proof of registration URL cannot be empty.");
         if (courses is null || !courses.Any())
             throw new DomainException("Proof of registration must have at least one course.");
-        return new ProofOfRegistration(url, courses);
+        return new ProofOfRegistration { ProofOfRegistrationURL = url, Courses = courses };
     }
 }
 

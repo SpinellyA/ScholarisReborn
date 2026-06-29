@@ -1,15 +1,10 @@
 ﻿public record GradeTranscript
 {
-    public string TrueCopyOfGradesURL { get; }
-    public double GWA { get; }
-    public IReadOnlyCollection<CourseRecord> CourseRecords { get; }
+    public string TrueCopyOfGradesURL { get; private init; } = string.Empty;
+    public double GWA { get; private init; }
+    public List<CourseRecord> CourseRecords { get; private init; } = new();
 
-    private GradeTranscript(string url, List<CourseRecord> records, double gwa)
-    {
-        TrueCopyOfGradesURL = url;
-        CourseRecords = records.AsReadOnly();
-        GWA = gwa;
-    }
+    private GradeTranscript() { }
 
     public static GradeTranscript Create(string url, List<CourseRecord> records)
     {
@@ -19,7 +14,12 @@
             throw new DomainException("Grade transcript must have at least one course record.");
 
         double gwa = CalculateGWA(records);
-        return new GradeTranscript(url, records, gwa);
+        return new GradeTranscript
+        {
+            TrueCopyOfGradesURL = url,
+            CourseRecords = records,
+            GWA = gwa
+        };
     }
 
     private static double CalculateGWA(List<CourseRecord> records)
