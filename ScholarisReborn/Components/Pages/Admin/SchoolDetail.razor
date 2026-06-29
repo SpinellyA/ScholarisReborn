@@ -27,7 +27,7 @@ else
 
     @if (_openTerm is null)
     {
-        <MudPaper Class="pa-4 mb-4">
+        <MudPaper Class="pa-4 mb-4 scholaris-card">
             <MudText Typo="Typo.h6" GutterBottom="true">Open a new term</MudText>
             <MudGrid>
                 <MudItem xs="12" sm="3">
@@ -41,7 +41,7 @@ else
     }
     else
     {
-        <MudPaper Class="pa-4 mb-4">
+        <MudPaper Class="pa-4 mb-4 scholaris-card">
             <MudText Typo="Typo.h6" GutterBottom="true">Term @_openTerm.TermNumber is open</MudText>
             <MudText Typo="Typo.body2" Class="mb-4">Started @_openTerm.StartedAt.ToLocalTime().ToString("g")</MudText>
             <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="CloseTermAsync">

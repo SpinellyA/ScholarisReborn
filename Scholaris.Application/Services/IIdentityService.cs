@@ -1,3 +1,4 @@
+
 public record AppIdentityResult(bool Succeeded, IReadOnlyCollection<string> Errors)
 {
     public static readonly AppIdentityResult Success = new(true, []);

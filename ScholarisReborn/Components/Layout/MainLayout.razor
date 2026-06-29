@@ -1,18 +1,23 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudLayout>
-    <MudAppBar Elevation="1">
+    <MudAppBar Elevation="2">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
-        <MudText Typo="Typo.h5" Class="ml-3">Application</MudText>
+        <div class="scholaris-brand ml-3">
+            <MudIcon Icon="@Icons.Material.Filled.School" Size="Size.Large" />
+            <div>
+                <MudText Typo="Typo.h6" Class="scholaris-brand-name">Scholaris</MudText>
+                <MudText Typo="Typo.caption" Class="scholaris-brand-subtitle d-none d-sm-block">CHED Scholar Information System</MudText>
+            </div>
+        </div>
         <MudSpacer />
-        <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" />
-        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
+        <MudIconButton Icon="@(DarkLightModeButtonIcon)" Color="Color.Inherit" OnClick="@DarkModeToggle" Title="Toggle light/dark mode" />
     </MudAppBar>
-    <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
+    <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="1">
         <NavMenu />
     </MudDrawer>
     <MudMainContent Class="pt-16 pa-4">
@@ -40,7 +45,14 @@
         {
             PaletteLight = _lightPalette,
             PaletteDark = _darkPalette,
-            LayoutProperties = new LayoutProperties()
+            Typography = new Typography
+            {
+                Default = new DefaultTypography { FontFamily = ["Roboto", "Helvetica", "Arial", "sans-serif"] }
+            },
+            LayoutProperties = new LayoutProperties
+            {
+                DefaultBorderRadius = "10px"
+            }
         };
     }
 
@@ -54,43 +66,66 @@
         _isDarkMode = !_isDarkMode;
     }
 
+    // Navy blue for institutional trust, warm gold as the "scholar achievement" accent —
+    // a Philippine academic/government feel without literally reproducing the flag.
     private readonly PaletteLight _lightPalette = new()
     {
-        Black = "#110e2d",
-        AppbarText = "#424242",
-        AppbarBackground = "rgba(255,255,255,0.8)",
-        DrawerBackground = "#ffffff",
-        GrayLight = "#e8e8e8",
+        Primary = "#14315C",
+        PrimaryDarken = "#0D2240",
+        PrimaryLighten = "#2A4D80",
+        Secondary = "#C9A227",
+        Black = "#14151a",
+        Background = "#F4F6F9",
+        BackgroundGray = "#EAEDF2",
+        Surface = "#FFFFFF",
+        AppbarText = "#FFFFFF",
+        AppbarBackground = "#14315C",
+        DrawerBackground = "#FFFFFF",
+        DrawerText = "#3A3F47",
+        DrawerIcon = "#5B6472",
+        TextPrimary = "#23262B",
+        TextSecondary = "#5B6472",
+        Success = "#2E9E5B",
+        Warning = "#D98E04",
+        Error = "#D1435B",
+        Info = "#2E6FB4",
+        GrayLight = "#E8E8E8",
         GrayLighter = "#f9f9f9",
+        LinesDefault = "#DEE2E8",
+        TableLines = "#DEE2E8",
+        Divider = "#E2E5EA",
     };
 
     private readonly PaletteDark _darkPalette = new()
     {
-        Primary = "#7e6fff",
-        Surface = "#1e1e2d",
-        Background = "#1a1a27",
-        BackgroundGray = "#151521",
-        AppbarText = "#92929f",
-        AppbarBackground = "rgba(26,26,39,0.8)",
-        DrawerBackground = "#1a1a27",
-        ActionDefault = "#74718e",
+        Primary = "#5C8DD6",
+        PrimaryDarken = "#3D6FB4",
+        PrimaryLighten = "#8AAEE0",
+        Secondary = "#E0B83D",
+        Surface = "#1A2230",
+        Background = "#11151C",
+        BackgroundGray = "#161D29",
+        AppbarText = "#E4E7EC",
+        AppbarBackground = "#0F1722",
+        DrawerBackground = "#161D29",
+        ActionDefault = "#8893A3",
         ActionDisabled = "#9999994d",
         ActionDisabledBackground = "#605f6d4d",
-        TextPrimary = "#b2b0bf",
-        TextSecondary = "#92929f",
+        TextPrimary = "#E4E7EC",
+        TextSecondary = "#9AA5B1",
         TextDisabled = "#ffffff33",
-        DrawerIcon = "#92929f",
-        DrawerText = "#92929f",
-        GrayLight = "#2a2833",
-        GrayLighter = "#1e1e2d",
-        Info = "#4a86ff",
+        DrawerIcon = "#9AA5B1",
+        DrawerText = "#C3CAD4",
+        GrayLight = "#232C3D",
+        GrayLighter = "#1A2230",
+        Info = "#5C8DD6",
         Success = "#3dcb6c",
-        Warning = "#ffb545",
+        Warning = "#E0B83D",
         Error = "#ff3f5f",
-        LinesDefault = "#33323e",
-        TableLines = "#33323e",
-        Divider = "#292838",
-        OverlayLight = "#1e1e2d80",
+        LinesDefault = "#2A3344",
+        TableLines = "#2A3344",
+        Divider = "#232C3D",
+        OverlayLight = "#1A223080",
     };
 
     public string DarkLightModeButtonIcon => _isDarkMode switch
@@ -99,5 +134,3 @@
         false => Icons.Material.Outlined.DarkMode,
     };
 }
-
-
