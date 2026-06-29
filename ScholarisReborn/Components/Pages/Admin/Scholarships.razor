@@ -1,5 +1,5 @@
 @page "/admin/scholarships"
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@rendermode RenderModes.InteractiveServerNoPrerender
 @attribute [Authorize(Roles = ApplicationRoles.SuperAdmin)]
 @using MediatR
 @inject IMediator Mediator
