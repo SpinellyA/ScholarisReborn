@@ -5,6 +5,19 @@
 
     <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Weather</MudNavLink>
 
+    <AuthorizeView Roles="@($"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")">
+        <Authorized>
+            <MudDivider Class="my-2" />
+            <MudNavLink Href="admin/invitations" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.MailOutline">Invitations</MudNavLink>
+            <AuthorizeView Roles="@ApplicationRoles.SuperAdmin" Context="superAdminContext">
+                <Authorized>
+                    <MudNavLink Href="admin/schools" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.School">Schools</MudNavLink>
+                    <MudNavLink Href="admin/scholarships" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.CardGiftcard">Scholarships</MudNavLink>
+                </Authorized>
+            </AuthorizeView>
+        </Authorized>
+    </AuthorizeView>
+
     <MudDivider Class="my-2" />
 
     <AuthorizeView>

@@ -1,0 +1,188 @@
+@page "/admin/invitations"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = $"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")]
+@using System.Security.Claims
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<PageTitle>Invitations</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Invitations</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" GutterBottom="true">Invite someone</MudText>
+    <MudGrid>
+        @if (_isSuperAdmin)
+        {
+            <MudItem xs="12" sm="3">
+                <MudSelect T="InvitationType" Label="Invite as" @bind-Value="_inviteType">
+                    <MudSelectItem Value="InvitationType.Scholar">Scholar</MudSelectItem>
+                    <MudSelectItem Value="InvitationType.Admin">Admin</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        }
+        <MudItem xs="12" sm="@(_isSuperAdmin ? 4 : 6)">
+            <MudTextField @bind-Value="_email" Label="Email" />
+        </MudItem>
+
+        @if (_inviteType == InvitationType.Scholar)
+        {
+            <MudItem xs="12" sm="3">
+                <MudSelect T="Guid" Label="School" @bind-Value="_schoolId">
+                    @if (_schools is not null)
+                    {
+                        @foreach (var school in _schools)
+                        {
+                            <MudSelectItem Value="@school.Id">@school.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudSelect T="Guid" Label="Scholarship" @bind-Value="_scholarshipId">
+                    @if (_scholarships is not null)
+                    {
+                        @foreach (var scholarship in _scholarships)
+                        {
+                            <MudSelectItem Value="@scholarship.Id">@scholarship.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+
+        <MudItem xs="12" sm="3">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SendInvitationAsync" FullWidth="true">Send invitation</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_invitations is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="_invitations" Hover="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Email</MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Invited by</MudTh>
+            <MudTh>School</MudTh>
+            <MudTh>Scholarship</MudTh>
+            <MudTh>Expires</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Email</MudTd>
+            <MudTd>@context.Type</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)">@context.Status</MudChip>
+            </MudTd>
+            <MudTd>@context.InvitedByEmail</MudTd>
+            <MudTd>@context.SchoolName</MudTd>
+            <MudTd>@context.ScholarshipName</MudTd>
+            <MudTd>@context.ExpiresAt.ToLocalTime().ToString("g")</MudTd>
+            <MudTd>
+                @if (context.Status == InvitationStatus.Pending)
+                {
+                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick="@(() => RevokeAsync(context.Id))">Revoke</MudButton>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private Guid _currentUserId;
+    private bool _isSuperAdmin;
+
+    private List<InvitationListItemDto>? _invitations;
+    private List<SchoolListItemDto>? _schools;
+    private List<ScholarshipListItemDto>? _scholarships;
+
+    private InvitationType _inviteType = InvitationType.Scholar;
+    private string _email = string.Empty;
+    private Guid _schoolId;
+    private Guid _scholarshipId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is not null)
+        {
+            var authState = await AuthStateTask;
+            var user = authState.User;
+            _isSuperAdmin = user.IsInRole(ApplicationRoles.SuperAdmin);
+            _currentUserId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        }
+
+        if (!_isSuperAdmin)
+        {
+            _inviteType = InvitationType.Scholar;
+        }
+
+        _schools = await Mediator.Send(new GetSchoolsQuery());
+        _scholarships = await Mediator.Send(new GetScholarshipsQuery());
+        await LoadInvitationsAsync();
+    }
+
+    private async Task LoadInvitationsAsync()
+    {
+        _invitations = await Mediator.Send(new GetInvitationsQuery());
+    }
+
+    private async Task SendInvitationAsync()
+    {
+        try
+        {
+            if (_inviteType == InvitationType.Admin)
+            {
+                await Mediator.Send(new InviteAdminCommand(_currentUserId, _email));
+            }
+            else
+            {
+                await Mediator.Send(new InviteScholarCommand(_currentUserId, _email, _schoolId, _scholarshipId));
+            }
+
+            _email = string.Empty;
+            Snackbar.Add("Invitation sent.", Severity.Success);
+            await LoadInvitationsAsync();
+        }
+        catch (DomainException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error);
+        }
+    }
+
+    private async Task RevokeAsync(Guid invitationId)
+    {
+        try
+        {
+            await Mediator.Send(new RevokeInvitationCommand(invitationId));
+            Snackbar.Add("Invitation revoked.", Severity.Success);
+            await LoadInvitationsAsync();
+        }
+        catch (DomainException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private static Color StatusColor(InvitationStatus status) => status switch
+    {
+        InvitationStatus.Pending => Color.Info,
+        InvitationStatus.Accepted => Color.Success,
+        InvitationStatus.Expired => Color.Warning,
+        InvitationStatus.Revoked => Color.Error,
+        _ => Color.Default
+    };
+}
