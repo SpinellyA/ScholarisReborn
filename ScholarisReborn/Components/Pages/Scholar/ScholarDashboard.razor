@@ -2,6 +2,7 @@
 @using MediatR
 @inject IMediator Mediator
 @inject NavigationManager Nav
+@inject ISnackbar Snackbar
 
 @if (_loading)
 {
@@ -89,7 +90,8 @@ else
                         <div class="mt-2">
                             @if (_dto.LatestStipend.Received is null)
                             {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Warning">Awaiting your confirmation</MudChip>
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" OnClick="ConfirmStipendAsync" Disabled="_stipendBusy" Class="mr-2">Confirm received</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" OnClick="DisputeStipendAsync" Disabled="_stipendBusy">Dispute</MudButton>
                             }
                             else if (_dto.LatestStipend.Received == true)
                             {
@@ -131,20 +133,46 @@ else
 
     private bool _loading = true;
     private bool _showStatus;
+    private bool _stipendBusy;
+    private Guid _userId;
     private ScholarDashboardDto? _dto;
 
     protected override async Task OnInitializedAsync()
     {
-        Guid userId = Guid.Empty;
         if (AuthStateTask is not null)
         {
             var state = await AuthStateTask;
             var id = state.User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (id is not null) userId = Guid.Parse(id);
+            if (id is not null) _userId = Guid.Parse(id);
         }
 
-        _dto = await Mediator.Send(new GetScholarDashboardQuery(userId));
+        await LoadAsync();
         _loading = false;
+    }
+
+    private async Task LoadAsync()
+        => _dto = await Mediator.Send(new GetScholarDashboardQuery(_userId));
+
+    private async Task ConfirmStipendAsync() => await RespondToStipendAsync(confirm: true);
+    private async Task DisputeStipendAsync() => await RespondToStipendAsync(confirm: false);
+
+    private async Task RespondToStipendAsync(bool confirm)
+    {
+        if (_dto?.LatestStipend is null) return;
+        _stipendBusy = true;
+        try
+        {
+            if (confirm)
+                await Mediator.Send(new ConfirmStipendReceiptCommand(_dto.LatestStipend.DropId, _userId));
+            else
+                await Mediator.Send(new DisputeStipendReceiptCommand(_dto.LatestStipend.DropId, _userId));
+
+            Snackbar.Add(confirm ? "Stipend receipt confirmed." : "Stipend disputed.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _stipendBusy = false; }
     }
 
     private void GoSubmit() => Nav.NavigateTo("/submit");

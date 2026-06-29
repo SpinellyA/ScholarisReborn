@@ -1,0 +1,84 @@
+@page "/admin/stipends"
+@rendermode RenderModes.InteractiveServerNoPrerender
+@attribute [Authorize(Roles = ApplicationRoles.SuperAdmin)]
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<InteractiveProviders />
+
+<PageTitle>Stipends</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Stipends</MudText>
+
+<MudPaper Class="pa-4 mb-4 scholaris-card">
+    <MudText Typo="Typo.h6" GutterBottom="true">Announce a stipend drop</MudText>
+    <MudGrid>
+        <MudItem xs="12" sm="3">
+            <MudSelect T="Region" Label="Region" @bind-Value="_region">
+                @foreach (var region in Enum.GetValues<Region>())
+                {
+                    <MudSelectItem Value="@region">@region</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudNumericField T="double" Label="Amount" @bind-Value="_amount" Min="0.0" Format="N2" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_description" Label="Description" />
+        </MudItem>
+        <MudItem xs="12" sm="2" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AnnounceAsync" FullWidth="true" Disabled="_busy">Announce</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_drops is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="_drops" Hover="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Date</MudTh><MudTh>Region</MudTh><MudTh>Amount</MudTh><MudTh>Description</MudTh><MudTh>Confirmed</MudTh><MudTh>Disputed</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.AnnouncedAt.ToLocalTime().ToString("MMM dd, yyyy")</MudTd>
+            <MudTd>@context.Region</MudTd>
+            <MudTd>₱@context.Amount.ToString("N2")</MudTd>
+            <MudTd>@context.Description</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="Color.Success">@context.Confirmed</MudChip></MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.Disputed > 0 ? Color.Error : Color.Default)">@context.Disputed</MudChip></MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<StipendDropDto>? _drops;
+    private Region _region = Region.NCR;
+    private double _amount;
+    private string _description = string.Empty;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync() => _drops = await Mediator.Send(new GetStipendDropsQuery());
+
+    private async Task AnnounceAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Mediator.Send(new AnnounceStipendDropCommand(_region, _amount, _description));
+            _amount = 0;
+            _description = string.Empty;
+            Snackbar.Add("Stipend announced.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _busy = false; }
+    }
+}
