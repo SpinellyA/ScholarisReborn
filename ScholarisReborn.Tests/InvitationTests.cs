@@ -18,6 +18,7 @@ namespace ScholarisReborn.Tests
         [Fact]
         public async Task Handle_ShouldWriteRecordToDatabase()
         {
+            Console.WriteLine("Hello world!");
             var options = CreateNewContextOptions();
             var mockPublisher = new Mock<IPublisher>();
 
