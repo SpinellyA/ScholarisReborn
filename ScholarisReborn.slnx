@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Scholaris.Application/ScholarisReborn.Application.csproj" Id="1ceea2c4-d081-494d-80c4-137fb988765d" />
+  <Project Path="ScholarisReborn.Domain/ScholarisReborn.Domain.csproj" Id="69887a9a-4301-421b-bd6f-386d50f72a0e" />
+  <Project Path="ScholarisReborn.Infrastructure/ScholarisReborn.Infrastructure.csproj" Id="3750f0a6-7b1f-44cc-a5b3-d3fdd531d342" />
+  <Project Path="ScholarisReborn.Tests/ScholarisReborn.Tests.csproj" Id="944a40cb-ac1f-4e80-bf5f-a04792997abd" />
+  <Project Path="ScholarisReborn/ScholarisReborn.Web.csproj" />
+</Solution>
