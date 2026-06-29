@@ -21,7 +21,7 @@
 
         return new School
         {
-             
+            Id = Guid.CreateVersion7(),
             SchoolCode = schoolCode,
             Name = name,
             Description = description,

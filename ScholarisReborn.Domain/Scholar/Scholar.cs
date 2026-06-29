@@ -17,7 +17,7 @@
 
         var scholar = new Scholar
         {
-             
+            Id = Guid.CreateVersion7(),
             StudentId = studentId,
             ScholarshipId = scholarshipId
         };

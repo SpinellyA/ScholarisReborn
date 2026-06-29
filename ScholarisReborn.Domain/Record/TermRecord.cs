@@ -18,8 +18,7 @@
 
         return new TermRecord
         {
-            
-             
+            Id = Guid.CreateVersion7(),
             ScholarId = scholarId,
             TermId = termId,
             Status = RecordStatus.Pending

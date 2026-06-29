@@ -24,6 +24,7 @@ public class User : AggregateRoot
 
         var user = new User
         {
+            Id = Guid.CreateVersion7(),
             Email = email,
             PasswordHash = passwordHash,
         };
