@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using ScholarisReborn.Components;
 
@@ -59,5 +61,22 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// Serves confidential PoR/TCG uploads. Authenticated, and authorized to admins or the file's owner.
+app.MapGet("/files/{id:guid}", async (Guid id, MyDbContext db, ClaimsPrincipal user) =>
+{
+    var file = await db.StoredFiles.AsNoTracking().FirstOrDefaultAsync(f => f.Id == id);
+    if (file is null)
+        return Results.NotFound();
+
+    var isAdmin = user.IsInRole(ApplicationRoles.SuperAdmin) || user.IsInRole(ApplicationRoles.Admin);
+    var userIdClaim = user.FindFirstValue(ClaimTypes.NameIdentifier);
+    var isOwner = userIdClaim is not null && Guid.TryParse(userIdClaim, out var uid) && uid == file.OwnerUserId;
+
+    if (!isAdmin && !isOwner)
+        return Results.Forbid();
+
+    return Results.File(file.Content, file.ContentType, file.FileName);
+}).RequireAuthorization();
 
 app.Run();

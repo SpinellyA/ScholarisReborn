@@ -1,0 +1,111 @@
+@page "/admin/records/school/{SchoolId:guid}"
+@rendermode RenderModes.InteractiveServerNoPrerender
+@attribute [Authorize(Roles = $"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")]
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<InteractiveProviders />
+
+<PageTitle>School Records</PageTitle>
+
+<MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/admin/records" Class="mb-2">All schools</MudButton>
+<MudText Typo="Typo.h4" GutterBottom="true">Records</MudText>
+
+<MudPaper Class="pa-4 mb-4 scholaris-card">
+    @if (_batches is null)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else if (_batches.Count == 0)
+    {
+        <MudText Typo="Typo.body2">This school has no scholars yet.</MudText>
+    }
+    else
+    {
+        <MudSelect T="int" Label="Batch" Value="_batch" ValueChanged="OnBatchChanged" Style="max-width:240px">
+            @foreach (var b in _batches)
+            {
+                <MudSelectItem Value="@b">Batch @b</MudSelectItem>
+            }
+        </MudSelect>
+    }
+</MudPaper>
+
+@if (_records is not null)
+{
+    <MudTextField @bind-Value="_search" Placeholder="Search scholar, program, status, processor…"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" Class="mb-2" />
+
+    <MudTable Items="Filtered" Hover="true" Elevation="0" SortLabel="Sort By">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortBy="new Func<RecordListItemDto, object>(x => x.ScholarName)">Scholar</MudTableSortLabel></MudTh>
+            <MudTh>Degree program</MudTh>
+            <MudTh>Term</MudTh>
+            <MudTh><MudTableSortLabel SortBy="new Func<RecordListItemDto, object>(x => x.Status)">Status</MudTableSortLabel></MudTh>
+            <MudTh>GWA</MudTh>
+            <MudTh>Processed by</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.ScholarName</MudTd>
+            <MudTd>@context.DegreeProgram</MudTd>
+            <MudTd>@context.TermNumber</MudTd>
+            <MudTd><MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)">@context.Status</MudChip></MudTd>
+            <MudTd>@(context.Gwa?.ToString("0.00") ?? "—")</MudTd>
+            <MudTd>@(context.ProcessedByName ?? "—")</MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="@($"/admin/records/detail/{context.RecordId}")">Review</MudButton>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+}
+
+@code {
+    [Parameter] public Guid SchoolId { get; set; }
+
+    private List<int>? _batches;
+    private int _batch;
+    private List<RecordListItemDto>? _records;
+    private string _search = string.Empty;
+
+    private IEnumerable<RecordListItemDto> Filtered =>
+        _records is null ? Enumerable.Empty<RecordListItemDto>() :
+        string.IsNullOrWhiteSpace(_search) ? _records :
+        _records.Where(r =>
+            r.ScholarName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || r.DegreeProgram.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || r.Status.ToString().Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || (r.ProcessedByName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        _batches = await Mediator.Send(new GetBatchNumbersQuery(SchoolId));
+        if (_batches.Count > 0)
+        {
+            _batch = _batches[0];
+            await LoadRecordsAsync();
+        }
+    }
+
+    private async Task OnBatchChanged(int batch)
+    {
+        _batch = batch;
+        await LoadRecordsAsync();
+    }
+
+    private async Task LoadRecordsAsync()
+    {
+        _records = await Mediator.Send(new GetRecordsForProcessingQuery(SchoolId, _batch));
+    }
+
+    private static Color StatusColor(RecordStatus status) => status switch
+    {
+        RecordStatus.Approved => Color.Success,
+        RecordStatus.Pending => Color.Warning,
+        RecordStatus.Deferred => Color.Info,
+        RecordStatus.Denied => Color.Error,
+        _ => Color.Default
+    };
+}

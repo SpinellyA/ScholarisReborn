@@ -1,0 +1,200 @@
+@page "/admin/records/detail/{RecordId:guid}"
+@rendermode RenderModes.InteractiveServerNoPrerender
+@attribute [Authorize(Roles = $"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")]
+@using System.Security.Claims
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<InteractiveProviders />
+
+<PageTitle>Review Record</PageTitle>
+
+<MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="GoBack" Class="mb-2">Back</MudButton>
+
+@if (_record is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudPaper Class="pa-4 mb-4 scholaris-card">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+            <div>
+                <MudText Typo="Typo.h5">@_record.ScholarName</MudText>
+                <MudText Typo="Typo.body2">@_record.DegreeProgram &middot; Batch @_record.BatchNumber &middot; @_record.SchoolName &middot; Term @_record.TermNumber</MudText>
+            </div>
+            <MudSpacer />
+            <MudChip T="string" Color="@StatusColor(_record.Status)">@_record.Status</MudChip>
+        </MudStack>
+        @if (_record.ProcessedByName is not null)
+        {
+            <MudText Typo="Typo.caption" Class="mt-2">Last processed by @_record.ProcessedByName</MudText>
+        }
+    </MudPaper>
+
+    <MudGrid>
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4 mb-4 scholaris-card">
+                <MudText Typo="Typo.h6" GutterBottom="true">Documents</MudText>
+                @if (_record.ProofOfRegistrationFileId is not null)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Description" Class="mb-2"
+                               Href="@($"/files/{_record.ProofOfRegistrationFileId}")" Target="_blank">View registration</MudButton>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mb-2">No registration document submitted.</MudText>
+                }
+                <br />
+                @if (_record.GradeTranscriptFileId is not null)
+                {
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                               Href="@($"/files/{_record.GradeTranscriptFileId}")" Target="_blank">View grades</MudButton>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2">@(_record.GradesRequired ? "No grade document submitted." : "No grade document (first-year — not required).")</MudText>
+                }
+            </MudPaper>
+
+            <MudPaper Class="pa-4 mb-4 scholaris-card">
+                <MudText Typo="Typo.h6" GutterBottom="true">New subjects (this term)</MudText>
+                <MudTable Items="_record.RegistrationCourses" Dense="true" Elevation="0">
+                    <HeaderContent><MudTh>Course</MudTh><MudTh>Units</MudTh></HeaderContent>
+                    <RowTemplate><MudTd>@context.CourseCode</MudTd><MudTd>@context.Units</MudTd></RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4 mb-4 scholaris-card">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.h6">Grades</MudText>
+                    <MudSpacer />
+                    @if (_record.Gwa is not null)
+                    {
+                        <MudText Typo="Typo.subtitle1">GWA: <b>@_record.Gwa.Value.ToString("0.00")</b></MudText>
+                    }
+                </MudStack>
+                @if (_record.Grades.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mt-2">No grades reported@(_record.GradesRequired ? "." : " (first-year).")</MudText>
+                }
+                else
+                {
+                    <MudTable Items="_record.Grades" Dense="true" Elevation="0">
+                        <HeaderContent><MudTh>Course</MudTh><MudTh>Units</MudTh><MudTh>Grade</MudTh></HeaderContent>
+                        <RowTemplate><MudTd>@context.CourseCode</MudTd><MudTd>@context.Units</MudTd><MudTd>@context.Grade.ToString("0.00")</MudTd></RowTemplate>
+                    </MudTable>
+                }
+            </MudPaper>
+
+            <MudPaper Class="pa-4 scholaris-card">
+                <MudText Typo="Typo.h6" GutterBottom="true">Decision</MudText>
+
+                @if (_action == ActionKind.None)
+                {
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Color="Color.Success" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.CheckCircle" OnClick="ApproveAsync" Disabled="_busy">Approve</MudButton>
+                        <MudButton Color="Color.Info" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Schedule" OnClick="@(() => _action = ActionKind.Defer)" Disabled="_busy">Defer</MudButton>
+                        <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Cancel" OnClick="@(() => _action = ActionKind.Deny)" Disabled="_busy">Deny</MudButton>
+                    </MudStack>
+                }
+                else
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">@(_action == ActionKind.Defer ? "Defer" : "Deny") — reason</MudText>
+                    <MudTextField @bind-Value="_reason" Lines="2" Placeholder="Explain the reason for the scholar…" Class="mb-2" />
+                    @if (_action == ActionKind.Deny)
+                    {
+                        <MudCheckBox T="bool" @bind-Value="_withhold" Label="Also withhold this scholar's status" />
+                    }
+                    <MudStack Row="true" Spacing="2" Class="mt-2">
+                        <MudButton Color="@(_action == ActionKind.Deny ? Color.Error : Color.Info)" Variant="Variant.Filled" OnClick="ConfirmAsync" Disabled="_busy">
+                            Confirm @(_action == ActionKind.Defer ? "defer" : "deny")
+                        </MudButton>
+                        <MudButton Variant="Variant.Text" OnClick="@(() => { _action = ActionKind.None; _reason = string.Empty; })" Disabled="_busy">Cancel</MudButton>
+                    </MudStack>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public Guid RecordId { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private TermRecordDetailDto? _record;
+    private Guid _adminId;
+    private bool _busy;
+
+    private enum ActionKind { None, Defer, Deny }
+    private ActionKind _action = ActionKind.None;
+    private string _reason = string.Empty;
+    private bool _withhold;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is not null)
+        {
+            var state = await AuthStateTask;
+            var id = state.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (id is not null) _adminId = Guid.Parse(id);
+        }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _record = await Mediator.Send(new GetTermRecordDetailQuery(RecordId));
+        _action = ActionKind.None;
+        _reason = string.Empty;
+        _withhold = false;
+    }
+
+    private async Task ApproveAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Mediator.Send(new ApproveTermRecordCommand(RecordId, _adminId));
+            Snackbar.Add("Record approved.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        _busy = true;
+        try
+        {
+            if (_action == ActionKind.Defer)
+                await Mediator.Send(new DeferTermRecordCommand(RecordId, _adminId, _reason));
+            else
+                await Mediator.Send(new DenyTermRecordCommand(RecordId, _adminId, _reason, _withhold));
+
+            Snackbar.Add(_action == ActionKind.Defer ? "Record deferred." : "Record denied.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private void GoBack() => Nav.NavigateTo("/admin/records");
+
+    private static Color StatusColor(RecordStatus status) => status switch
+    {
+        RecordStatus.Approved => Color.Success,
+        RecordStatus.Pending => Color.Warning,
+        RecordStatus.Deferred => Color.Info,
+        RecordStatus.Denied => Color.Error,
+        _ => Color.Default
+    };
+}

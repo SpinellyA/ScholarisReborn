@@ -1,0 +1,55 @@
+@page "/admin/records"
+@rendermode RenderModes.InteractiveServerNoPrerender
+@attribute [Authorize(Roles = $"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")]
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<InteractiveProviders />
+
+<PageTitle>Records</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Record Processing</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">Select a school to review and process its scholars' semestral submissions.</MudText>
+
+@if (_schools is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="_schools" Hover="true" Elevation="0" OnRowClick="@((TableRowClickEventArgs<SchoolSubmissionStatsDto> a) => Open(a.Item))" T="SchoolSubmissionStatsDto">
+        <HeaderContent>
+            <MudTh>School</MudTh>
+            <MudTh>Region</MudTh>
+            <MudTh>Active scholars</MudTh>
+            <MudTh>Pending submissions</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>@context.Region</MudTd>
+            <MudTd>@context.ActiveScholars</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Color="@(context.PendingSubmissions > 0 ? Color.Warning : Color.Success)">
+                    @context.PendingSubmissions
+                </MudChip>
+            </MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => Open(context))">Open</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<SchoolSubmissionStatsDto>? _schools;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _schools = await Mediator.Send(new GetSchoolSubmissionStatsQuery());
+    }
+
+    private void Open(SchoolSubmissionStatsDto school)
+        => Nav.NavigateTo($"/admin/records/school/{school.Id}");
+}
