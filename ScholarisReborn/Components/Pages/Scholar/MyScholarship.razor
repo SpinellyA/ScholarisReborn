@@ -1,0 +1,114 @@
+@page "/scholarship/report"
+@rendermode RenderModes.InteractiveServerNoPrerender
+@attribute [Authorize(Roles = ApplicationRoles.Scholar)]
+@using System.Security.Claims
+@using MediatR
+@inject IMediator Mediator
+
+<InteractiveProviders />
+
+<PageTitle>My Scholarship</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">My Scholarship</MudText>
+
+@if (_history is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudTabs Elevation="1" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+        <MudTabPanel Text="Compliance">
+            @if (_history.Compliance.Count == 0)
+            {
+                <MudText Typo="Typo.body2">No submissions yet.</MudText>
+            }
+            else
+            {
+                <MudTable Items="_history.Compliance" Hover="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Term</MudTh><MudTh>Registration</MudTh><MudTh>Grades</MudTh><MudTh>GWA</MudTh><MudTh>Status</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>Term @context.TermNumber</MudTd>
+                        <MudTd>@(context.PorSubmitted ? "✓" : "—")</MudTd>
+                        <MudTd>@(context.GradesSubmitted ? "✓" : "—")</MudTd>
+                        <MudTd>@(context.Gwa?.ToString("0.00") ?? "—")</MudTd>
+                        <MudTd><MudChip T="string" Size="Size.Small" Color="@RecordColor(context.Status)">@context.Status</MudChip></MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudTabPanel>
+
+        <MudTabPanel Text="Status history">
+            <MudTable Items="_history.Statuses" Hover="true" Elevation="0">
+                <HeaderContent><MudTh>Status</MudTh><MudTh>From</MudTh><MudTh>To</MudTh><MudTh>Reason</MudTh></HeaderContent>
+                <RowTemplate>
+                    <MudTd><MudChip T="string" Size="Size.Small" Color="@ScholasticColor(context.Status)">@context.Status</MudChip></MudTd>
+                    <MudTd>@context.StartTime.ToLocalTime().ToString("MMM dd, yyyy")</MudTd>
+                    <MudTd>@(context.EndTime?.ToLocalTime().ToString("MMM dd, yyyy") ?? "present")</MudTd>
+                    <MudTd>@(context.Reason ?? "—")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Stipend history">
+            @if (_history.Stipends.Count == 0)
+            {
+                <MudText Typo="Typo.body2">No stipend announcements yet.</MudText>
+            }
+            else
+            {
+                <MudTable Items="_history.Stipends" Hover="true" Elevation="0">
+                    <HeaderContent><MudTh>Date</MudTh><MudTh>Amount</MudTh><MudTh>Description</MudTh><MudTh>Receipt</MudTh></HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.AnnouncedAt.ToLocalTime().ToString("MMM dd, yyyy")</MudTd>
+                        <MudTd>₱@context.Amount.ToString("N2")</MudTd>
+                        <MudTd>@context.Description</MudTd>
+                        <MudTd>
+                            @if (context.Received is null) { <MudChip T="string" Size="Size.Small" Color="Color.Warning">Pending</MudChip> }
+                            else if (context.Received == true) { <MudChip T="string" Size="Size.Small" Color="Color.Success">Received</MudChip> }
+                            else { <MudChip T="string" Size="Size.Small" Color="Color.Error">Disputed</MudChip> }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private ScholarHistoryDto? _history;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Guid userId = Guid.Empty;
+        if (AuthStateTask is not null)
+        {
+            var state = await AuthStateTask;
+            var id = state.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (id is not null) userId = Guid.Parse(id);
+        }
+        _history = await Mediator.Send(new GetScholarHistoryQuery(userId));
+    }
+
+    private static Color RecordColor(RecordStatus s) => s switch
+    {
+        RecordStatus.Approved => Color.Success,
+        RecordStatus.Pending => Color.Warning,
+        RecordStatus.Deferred => Color.Info,
+        RecordStatus.Denied => Color.Error,
+        _ => Color.Default
+    };
+
+    private static Color ScholasticColor(ScholasticStatus s) => s switch
+    {
+        ScholasticStatus.Active => Color.Success,
+        ScholasticStatus.Withheld => Color.Warning,
+        ScholasticStatus.Terminated => Color.Error,
+        ScholasticStatus.Graduated => Color.Info,
+        _ => Color.Default
+    };
+}

@@ -1,0 +1,97 @@
+@page "/profile"
+@rendermode RenderModes.InteractiveServerNoPrerender
+@attribute [Authorize]
+@using System.Security.Claims
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<InteractiveProviders />
+
+<PageTitle>My Profile</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">My Profile</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudPaper Class="pa-4 scholaris-card" Style="max-width:640px">
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField Value="_email" Label="Email" ReadOnly="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_firstName" Label="First name" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_lastName" Label="Last name" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_dateOfBirth" Label="Date of birth" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_contactNumber" Label="Contact number" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_address" Label="Address" Lines="2" />
+            </MudItem>
+            <MudItem xs="12" Class="d-flex justify-end">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Save changes</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private Guid _userId;
+    private bool _loading = true;
+    private bool _busy;
+
+    private string _email = string.Empty;
+    private string _firstName = string.Empty;
+    private string _lastName = string.Empty;
+    private DateTime? _dateOfBirth;
+    private string? _address;
+    private string? _contactNumber;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is not null)
+        {
+            var state = await AuthStateTask;
+            var id = state.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (id is not null) _userId = Guid.Parse(id);
+        }
+
+        var p = await Mediator.Send(new GetProfileQuery(_userId));
+        if (p is not null)
+        {
+            _email = p.Email;
+            _firstName = p.FirstName;
+            _lastName = p.LastName;
+            _dateOfBirth = p.DateOfBirth?.ToDateTime(TimeOnly.MinValue);
+            _address = p.Address;
+            _contactNumber = p.ContactNumber;
+        }
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            var dob = _dateOfBirth is null ? (DateOnly?)null : DateOnly.FromDateTime(_dateOfBirth.Value);
+            await Mediator.Send(new UpdateProfileCommand(_userId, _firstName, _lastName, dob, _address, _contactNumber));
+            Snackbar.Add("Profile updated.", Severity.Success);
+        }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _busy = false; }
+    }
+}
