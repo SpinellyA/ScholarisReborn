@@ -15,6 +15,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<MyDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IEmailSender, LoggingEmailSender>();
+        services.AddScoped<IIdentityService, IdentityService>();
 
         services.AddHostedService<RoleSeedingHostedService>();
 
