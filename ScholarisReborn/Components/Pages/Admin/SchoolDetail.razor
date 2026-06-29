@@ -1,0 +1,135 @@
+@page "/admin/schools/{SchoolId:guid}"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = $"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")]
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<PageTitle>School</PageTitle>
+
+@if (_school is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">@_school.Name (@_school.SchoolCode)</MudText>
+    <MudText Typo="Typo.body2" Class="mb-4">@_school.Region &middot; @_school.TermSystem</MudText>
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.subtitle2">Active scholars</MudText>
+                <MudText Typo="Typo.h5">@_school.ActiveScholarsCount</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (_openTerm is null)
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudText Typo="Typo.h6" GutterBottom="true">Open a new term</MudText>
+            <MudGrid>
+                <MudItem xs="12" sm="3">
+                    <MudNumericField @bind-Value="_termNumber" Label="Term number" Min="1" />
+                </MudItem>
+                <MudItem xs="12" sm="3" Class="d-flex align-end">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenTermAsync" FullWidth="true">Open term</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudText Typo="Typo.h6" GutterBottom="true">Term @_openTerm.TermNumber is open</MudText>
+            <MudText Typo="Typo.body2" Class="mb-4">Started @_openTerm.StartedAt.ToLocalTime().ToString("g")</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="CloseTermAsync">
+                Close term
+            </MudButton>
+            <MudText Typo="Typo.caption" Class="mt-2">
+                Closing will automatically withhold any active scholar who hasn't submitted both a grade transcript and proof of registration for this term.
+            </MudText>
+        </MudPaper>
+    }
+
+    <MudText Typo="Typo.h6" GutterBottom="true">Term history</MudText>
+    <MudTable Items="_school.Terms" Hover="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Term #</MudTh>
+            <MudTh>Started</MudTh>
+            <MudTh>Ended</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.TermNumber</MudTd>
+            <MudTd>@context.StartedAt.ToLocalTime().ToString("g")</MudTd>
+            <MudTd>@(context.EndedAt?.ToLocalTime().ToString("g") ?? "-")</MudTd>
+            <MudTd>
+                <MudChip T="string" Color="@(context.IsOpen ? Color.Success : Color.Default)" Size="Size.Small">
+                    @(context.IsOpen ? "Open" : "Closed")
+                </MudChip>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [Parameter]
+    public Guid SchoolId { get; set; }
+
+    private SchoolDetailsDto? _school;
+    private TermDto? _openTerm;
+    private int _termNumber = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _school = await Mediator.Send(new GetSchoolByIdQuery(SchoolId));
+        _openTerm = _school?.Terms.FirstOrDefault(t => t.IsOpen);
+        _termNumber = (_school?.Terms.Select(t => t.TermNumber).DefaultIfEmpty(0).Max() ?? 0) + 1;
+    }
+
+    private async Task OpenTermAsync()
+    {
+        try
+        {
+            await Mediator.Send(new OpenTermCommand(SchoolId, _termNumber));
+            Snackbar.Add("Term opened.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (DomainException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error);
+        }
+    }
+
+    private async Task CloseTermAsync()
+    {
+        if (_openTerm is null)
+            return;
+
+        try
+        {
+            await Mediator.Send(new CloseTermCommand(SchoolId, _openTerm.Id));
+            Snackbar.Add("Term closed.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (DomainException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error);
+        }
+    }
+}

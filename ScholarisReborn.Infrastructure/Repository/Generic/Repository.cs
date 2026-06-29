@@ -26,11 +26,15 @@ public class Repository<T> : IRepository<T> where T : class
     public virtual async Task<T?> GetById(Guid id)
         => await _set.FindAsync(id);
 
+    // Tracked (like GetById): these are repository methods used by command handlers that mutate
+    // and save the returned aggregates within the same unit of work. AsNoTracking here would lose
+    // shadow-key values for owned collections (e.g. ScholarStatus) and break re-attachment on save.
+    // Read-only call sites should query through IApplicationDbContext instead.
     public virtual async Task<List<T>> GetAllAsync(CancellationToken cancellationToken = default)
-        => await _set.AsNoTracking().ToListAsync(cancellationToken);
+        => await _set.ToListAsync(cancellationToken);
 
     public virtual async Task<List<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
-        => await _set.AsNoTracking().Where(predicate).ToListAsync(cancellationToken);
+        => await _set.Where(predicate).ToListAsync(cancellationToken);
 
     public virtual void Update(T entity)
         => _set.Update(entity);

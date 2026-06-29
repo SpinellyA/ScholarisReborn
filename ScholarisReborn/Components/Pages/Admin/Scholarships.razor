@@ -1,0 +1,129 @@
+@page "/admin/scholarships"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = ApplicationRoles.SuperAdmin)]
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<PageTitle>Scholarships</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Scholarships</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" GutterBottom="true">Create scholarship</MudText>
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_name" Label="Name" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_description" Label="Description" />
+        </MudItem>
+        <MudItem xs="12" sm="2" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateScholarshipAsync" FullWidth="true">Create</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" GutterBottom="true">Add a grant</MudText>
+    <MudGrid>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="Guid" Label="Scholarship" @bind-Value="_grantScholarshipId">
+                @if (_scholarships is not null)
+                {
+                    @foreach (var scholarship in _scholarships)
+                    {
+                        <MudSelectItem Value="@scholarship.Id">@scholarship.Name</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_grantName" Label="Grant name" />
+        </MudItem>
+        <MudItem xs="12" sm="2">
+            <MudNumericField @bind-Value="_grantAmount" Label="Amount" Min="0.0" />
+        </MudItem>
+        <MudItem xs="12" sm="2" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="AddGrantAsync" FullWidth="true">Add grant</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_scholarships is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="_scholarships" Hover="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Description</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>@context.Description</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<ScholarshipListItemDto>? _scholarships;
+
+    private string _name = string.Empty;
+    private string _description = string.Empty;
+
+    private Guid _grantScholarshipId;
+    private string _grantName = string.Empty;
+    private double _grantAmount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadScholarshipsAsync();
+    }
+
+    private async Task LoadScholarshipsAsync()
+    {
+        _scholarships = await Mediator.Send(new GetScholarshipsQuery());
+    }
+
+    private async Task CreateScholarshipAsync()
+    {
+        try
+        {
+            await Mediator.Send(new CreateScholarshipCommand(_name, _description));
+            _name = string.Empty;
+            _description = string.Empty;
+            Snackbar.Add("Scholarship created.", Severity.Success);
+            await LoadScholarshipsAsync();
+        }
+        catch (DomainException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error);
+        }
+    }
+
+    private async Task AddGrantAsync()
+    {
+        try
+        {
+            await Mediator.Send(new AddScholarshipGrantCommand(_grantScholarshipId, _grantName, _grantAmount));
+            _grantName = string.Empty;
+            _grantAmount = 0;
+            Snackbar.Add("Grant added.", Severity.Success);
+        }
+        catch (DomainException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error);
+        }
+    }
+}

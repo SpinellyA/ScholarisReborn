@@ -1,0 +1,111 @@
+@page "/admin/schools"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = ApplicationRoles.SuperAdmin)]
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+
+<PageTitle>Schools</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Schools</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" GutterBottom="true">Create school</MudText>
+    <MudGrid>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="_schoolCode" Label="School code" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudTextField @bind-Value="_name" Label="Name" />
+        </MudItem>
+        <MudItem xs="12" sm="5">
+            <MudTextField @bind-Value="_description" Label="Description" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="Region" Label="Region" @bind-Value="_region">
+                @foreach (var region in Enum.GetValues<Region>())
+                {
+                    <MudSelectItem Value="@region">@region</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect T="TermSystem" Label="Term system" @bind-Value="_termSystem">
+                @foreach (var termSystem in Enum.GetValues<TermSystem>())
+                {
+                    <MudSelectItem Value="@termSystem">@termSystem</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateSchoolAsync" FullWidth="true">Create</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_schools is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudTable Items="_schools" Hover="true" Elevation="0">
+        <HeaderContent>
+            <MudTh>Code</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Region</MudTh>
+            <MudTh>Term system</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.SchoolCode</MudTd>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>@context.Region</MudTd>
+            <MudTd>@context.TermSystem</MudTd>
+            <MudTd>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="@($"/admin/schools/{context.Id}")">Manage terms</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<SchoolListItemDto>? _schools;
+
+    private string _schoolCode = string.Empty;
+    private string _name = string.Empty;
+    private string _description = string.Empty;
+    private Region _region;
+    private TermSystem _termSystem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSchoolsAsync();
+    }
+
+    private async Task LoadSchoolsAsync()
+    {
+        _schools = await Mediator.Send(new GetSchoolsQuery());
+    }
+
+    private async Task CreateSchoolAsync()
+    {
+        try
+        {
+            await Mediator.Send(new CreateSchoolCommand(_schoolCode, _name, _description, _region, _termSystem));
+            _schoolCode = string.Empty;
+            _name = string.Empty;
+            _description = string.Empty;
+            Snackbar.Add("School created.", Severity.Success);
+            await LoadSchoolsAsync();
+        }
+        catch (DomainException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (FluentValidation.ValidationException ex)
+        {
+            Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error);
+        }
+    }
+}
