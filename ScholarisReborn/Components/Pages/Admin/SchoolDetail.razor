@@ -1,5 +1,5 @@
 @page "/admin/schools/{SchoolId:guid}"
-@rendermode InteractiveServer
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @attribute [Authorize(Roles = $"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")]
 @using MediatR
 @inject IMediator Mediator

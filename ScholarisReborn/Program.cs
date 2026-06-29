@@ -26,6 +26,15 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddIdentityCookies();
+
+// Without this, the cookie middleware challenges to its default "/Account/Login" (which doesn't
+// exist in this app) instead of our actual login page, on any hard page load that fails [Authorize].
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/login";
+    options.AccessDeniedPath = "/access-denied";
+});
+
 builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 

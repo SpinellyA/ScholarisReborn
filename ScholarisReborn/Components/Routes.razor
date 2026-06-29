@@ -1,8 +1,15 @@
 ﻿<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
-            <NotAuthorized>
-                <MudText Typo="Typo.h5" Class="ma-4">You are not authorized to view this page.</MudText>
+            <NotAuthorized Context="authContext">
+                @if (authContext.User.Identity?.IsAuthenticated ?? false)
+                {
+                    <MudText Typo="Typo.h5" Class="ma-4">You are not authorized to view this page.</MudText>
+                }
+                else
+                {
+                    <RedirectToLogin />
+                }
             </NotAuthorized>
         </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
