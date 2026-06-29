@@ -1,9 +1,10 @@
 @inherits LayoutComponentBase
 
+@* MudPopoverProvider/MudDialogProvider/MudSnackbarProvider deliberately live on each interactive
+   page (via InteractiveProviders) instead of here: this app uses per-page render modes, not a
+   global one, and the layout can end up in a different render boundary than the page - declaring
+   them here only would leave interactive pages without a provider in their own boundary. *@
 <MudThemeProvider Theme="@_theme" IsDarkMode="_isDarkMode" />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
 <MudLayout>
     <MudAppBar Elevation="2">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />

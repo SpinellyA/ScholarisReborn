@@ -1,0 +1,7 @@
+@* Drop this at the top of any page that uses @rendermode RenderModes.InteractiveServerNoPrerender
+   and needs MudSelect/MudDialog/MudSnackbar/etc. Per-page render modes mean the page and its layout
+   can land in different render boundaries, so these can't live only in MainLayout - see the note
+   there. *@
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
