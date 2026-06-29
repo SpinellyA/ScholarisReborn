@@ -1,0 +1,73 @@
+/* Scholaris custom styling — layered on top of the MudBlazor theme (see MainLayout.razor). */
+
+:root {
+    --scholaris-radius: 10px;
+}
+
+h1, h2, h3, h4, h5, h6,
+.mud-typography-h1, .mud-typography-h2, .mud-typography-h3,
+.mud-typography-h4, .mud-typography-h5, .mud-typography-h6 {
+    font-family: "Poppins", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 600;
+}
+
+/* App bar wordmark */
+.scholaris-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.scholaris-brand-name {
+    font-family: "Poppins", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.scholaris-brand-subtitle {
+    opacity: 0.75;
+    font-size: 0.75rem;
+    margin-top: -2px;
+}
+
+/* Nav section labels */
+.scholaris-nav-section {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    opacity: 0.6;
+    padding: 1rem 1rem 0.25rem 1rem;
+}
+
+/* Dashboard tiles */
+.scholaris-tile {
+    border-radius: var(--scholaris-radius);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    height: 100%;
+}
+
+.scholaris-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.scholaris-tile-icon {
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Generic section card used across admin pages */
+.scholaris-card {
+    border-radius: var(--scholaris-radius);
+}
+
+.scholaris-hero {
+    border-radius: var(--scholaris-radius);
+    background: linear-gradient(135deg, var(--mud-palette-primary) 0%, var(--mud-palette-primary-darken) 100%);
+    color: var(--mud-palette-primary-text);
+    padding: 2rem;
+}

@@ -1,13 +1,11 @@
 
 <MudNavMenu>
-    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
-    <MudNavLink Href="counter" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Add">Counter</MudNavLink>
-
-    <MudNavLink Href="weather" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.List">Weather</MudNavLink>
+    <MudText Typo="Typo.body2" Class="scholaris-nav-section">Overview</MudText>
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
 
     <AuthorizeView Roles="@($"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")">
         <Authorized>
-            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.body2" Class="scholaris-nav-section">Administration</MudText>
             <MudNavLink Href="admin/invitations" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.MailOutline">Invitations</MudNavLink>
             <AuthorizeView Roles="@ApplicationRoles.SuperAdmin" Context="superAdminContext">
                 <Authorized>
@@ -18,8 +16,7 @@
         </Authorized>
     </AuthorizeView>
 
-    <MudDivider Class="my-2" />
-
+    <MudText Typo="Typo.body2" Class="scholaris-nav-section">Account</MudText>
     <AuthorizeView>
         <Authorized>
             <MudText Class="px-4 py-2" Typo="Typo.body2">Signed in as @context.User.Identity?.Name</MudText>
@@ -31,4 +28,3 @@
         </NotAuthorized>
     </AuthorizeView>
 </MudNavMenu>
-
