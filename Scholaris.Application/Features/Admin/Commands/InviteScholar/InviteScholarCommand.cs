@@ -5,6 +5,8 @@ public record InviteScholarCommand(
     string Email,
     Guid schoolId,
     Guid scholarshipId,
+    int BatchNumber,
+    string DegreeProgram,
     string? FirstName = null,
     string? LastName = null,
     DateOnly? DateOfBirth = null,

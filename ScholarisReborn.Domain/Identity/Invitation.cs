@@ -43,6 +43,8 @@ public class Invitation : AggregateRoot
     public Guid Token { get; private set; } // what goes in the email link
     public Guid? SchoolId { get; private set; }
     public Guid? ScholarshipId { get; private set; }
+    public int? BatchNumber { get; private set; }
+    public string? DegreeProgram { get; private set; }
     public InvitationSeedData? SeedData { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime ExpiresAt { get; private set; }
@@ -62,17 +64,24 @@ public class Invitation : AggregateRoot
         Guid invitedByAdminId,
         Guid? schoolId = null,
         Guid? scholarshipId = null,
+        int? batchNumber = null,
+        string? degreeProgram = null,
         InvitationSeedData? seedData = null)
     {
         if (string.IsNullOrWhiteSpace(email))
             throw new DomainException("Email cannot be empty.");
 
-        if (type == InvitationType.Admin && (schoolId is not null || scholarshipId is not null))
-            throw new DomainException("Admin invitations cannot be associated with a school or scholarship.");
+        if (type == InvitationType.Admin &&
+            (schoolId is not null || scholarshipId is not null || batchNumber is not null || !string.IsNullOrWhiteSpace(degreeProgram)))
+            throw new DomainException("Admin invitations cannot be associated with a school, scholarship, batch, or degree program.");
         if (type == InvitationType.Scholar && schoolId is null)
             throw new DomainException("Scholar invitations must specify a school.");
         if (type == InvitationType.Scholar && scholarshipId is null)
             throw new DomainException("Scholar invitations must specify a scholarship.");
+        if (type == InvitationType.Scholar && (batchNumber is null || batchNumber <= 0))
+            throw new DomainException("Scholar invitations must specify a batch number.");
+        if (type == InvitationType.Scholar && string.IsNullOrWhiteSpace(degreeProgram))
+            throw new DomainException("Scholar invitations must specify a degree program.");
 
         var invitation = new Invitation
         {
@@ -86,6 +95,8 @@ public class Invitation : AggregateRoot
             IsUsed = false,
             SchoolId = schoolId,
             ScholarshipId = scholarshipId,
+            BatchNumber = batchNumber,
+            DegreeProgram = degreeProgram,
             SeedData = seedData,
         };
 

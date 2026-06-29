@@ -13,6 +13,8 @@ public class InviteScholarCommandValidator : AbstractValidator<InviteScholarComm
         RuleFor(c => c.Email).NotEmpty().EmailAddress();
         RuleFor(c => c.schoolId).NotEmpty();
         RuleFor(c => c.scholarshipId).NotEmpty();
+        RuleFor(c => c.BatchNumber).GreaterThan(0);
+        RuleFor(c => c.DegreeProgram).NotEmpty().MaximumLength(256);
 
         RuleFor(c => c.schoolId)
             .MustAsync(SchoolExistsAsync)

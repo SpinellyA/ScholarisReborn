@@ -17,6 +17,7 @@ public class UnitOfWork : IUnitOfWork
     public IScholarshipRepository ScholarshipRepository => new ScholarshipRepository(_context);
     public ISchoolRepository SchoolRepository => new SchoolRepository(_context);
     public IStipendDropRepository StipendDropRepository => new StipendDropRepository(_context);
+    public IStoredFileRepository StoredFileRepository => new StoredFileRepository(_context);
 
     public UnitOfWork(MyDbContext context, IPublisher publisher)
     {

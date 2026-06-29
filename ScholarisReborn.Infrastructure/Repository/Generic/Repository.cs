@@ -93,3 +93,10 @@ public class StipendDropRepository : Repository<StipendDrop>, IStipendDropReposi
     }
 }
 
+public class StoredFileRepository : Repository<StoredFile>, IStoredFileRepository
+{
+    public StoredFileRepository(MyDbContext context) : base(context)
+    {
+    }
+}
+
