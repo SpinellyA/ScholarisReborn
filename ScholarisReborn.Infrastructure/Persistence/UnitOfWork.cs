@@ -93,7 +93,9 @@ public class UnitOfWork : IUnitOfWork
 
         foreach (var domainEvent in domainEvents)
         {
-            await _publisher.Publish(domainEvent, cancellationToken);
+            var notificationType = typeof(DomainEventNotification<>).MakeGenericType(domainEvent.GetType());
+            var notification = (INotification)Activator.CreateInstance(notificationType, domainEvent)!;
+            await _publisher.Publish(notification, cancellationToken);
         }
     }
 

@@ -1,8 +1,8 @@
 using MediatR;
 
-public record InviteAdminCommand(
-    Guid invitedByAdminId,
-    string Email,
+public record AcceptInvitationCommand(
+    Guid Token,
+    string Password,
     string? FirstName = null,
     string? LastName = null,
     DateTime? DateOfBirth = null,

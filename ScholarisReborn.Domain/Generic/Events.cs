@@ -1,6 +1,6 @@
 ﻿public record UserRegisteredEvent(Guid UserId, string Email) : DomainEvent;
-public record InvitationCreatedEvent(Guid id, string Email, InvitationType type, Guid token) : DomainEvent;
-public record InvitationAcceptedEvent(Guid id, string Email, InvitationType type) : DomainEvent;
+public record InvitationCreatedEvent(Guid Id, string Email, InvitationType Type, Guid Token) : DomainEvent;
+public record InvitationAcceptedEvent(Guid Id, string Email, InvitationType Type) : DomainEvent;
 public record InvitationRevokedEvent(Guid Id, string Email) : DomainEvent;
 
 

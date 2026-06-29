@@ -1,0 +1,69 @@
+@page "/login"
+@layout Layout.AuthLayout
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Log in</PageTitle>
+
+<div class="auth-card">
+    <h1>Log in</h1>
+    <p>Sign in to your CHED Scholaris account.</p>
+
+    @if (_errorMessage is not null)
+    {
+        <div class="auth-error">@_errorMessage</div>
+    }
+
+    <EditForm Model="Input" FormName="login" method="post" OnValidSubmit="LoginUserAsync">
+        <DataAnnotationsValidator />
+
+        <div class="auth-field">
+            <label for="email">Email</label>
+            <InputText id="email" @bind-Value="Input.Email" autocomplete="username" />
+            <ValidationMessage For="() => Input.Email" />
+        </div>
+
+        <div class="auth-field">
+            <label for="password">Password</label>
+            <InputText id="password" type="password" @bind-Value="Input.Password" autocomplete="current-password" />
+            <ValidationMessage For="() => Input.Password" />
+        </div>
+
+        <button type="submit" class="auth-button">Log in</button>
+    </EditForm>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginInputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private string? _errorMessage;
+
+    private async Task LoginUserAsync()
+    {
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: true, lockoutOnFailure: false);
+
+        if (result.Succeeded)
+        {
+            NavigationManager.NavigateTo(ReturnUrl ?? "/", forceLoad: true);
+        }
+        else
+        {
+            _errorMessage = "Invalid email or password.";
+        }
+    }
+
+    private class LoginInputModel
+    {
+        [Required, EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
+    }
+}

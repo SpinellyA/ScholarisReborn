@@ -15,7 +15,10 @@
 </head>
 
 <body>
-    <Routes @rendermode="InteractiveServer" />
+    @* No global render mode here: Login/Register must run as static SSR so they can write the
+       auth cookie to the HTTP response (impossible once an interactive circuit has taken over).
+       Pages that need interactivity set their own render mode directive. *@
+    <Routes />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>

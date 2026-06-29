@@ -1,0 +1,231 @@
+@page "/register"
+@layout Layout.AuthLayout
+@using System.ComponentModel.DataAnnotations
+@using MediatR
+@using Microsoft.AspNetCore.Identity
+@inject IMediator Mediator
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+
+<PageTitle>Register</PageTitle>
+
+<div class="auth-card">
+    @if (_loading)
+    {
+        <p>Loading...</p>
+    }
+    else if (_mode == RegisterMode.FirstRunSuperAdmin)
+    {
+        <h1>Create the first administrator account</h1>
+        <p>No accounts exist yet on this CHED Scholaris instance. The first account registered becomes the SuperAdmin.</p>
+
+        @if (_errorMessage is not null)
+        {
+            <div class="auth-error">@_errorMessage</div>
+        }
+
+        <EditForm Model="SuperAdminInput" FormName="register-superadmin" method="post" OnValidSubmit="RegisterSuperAdminAsync">
+            <DataAnnotationsValidator />
+
+            <div class="auth-field">
+                <label>First name</label>
+                <InputText @bind-Value="SuperAdminInput.FirstName" />
+                <ValidationMessage For="() => SuperAdminInput.FirstName" />
+            </div>
+            <div class="auth-field">
+                <label>Last name</label>
+                <InputText @bind-Value="SuperAdminInput.LastName" />
+                <ValidationMessage For="() => SuperAdminInput.LastName" />
+            </div>
+            <div class="auth-field">
+                <label>Email</label>
+                <InputText @bind-Value="SuperAdminInput.Email" autocomplete="username" />
+                <ValidationMessage For="() => SuperAdminInput.Email" />
+            </div>
+            <div class="auth-field">
+                <label>Password</label>
+                <InputText type="password" @bind-Value="SuperAdminInput.Password" autocomplete="new-password" />
+                <ValidationMessage For="() => SuperAdminInput.Password" />
+            </div>
+
+            <button type="submit" class="auth-button">Create account</button>
+        </EditForm>
+    }
+    else if (_mode == RegisterMode.AcceptInvitation && _invitation is not null)
+    {
+        <h1>Complete your registration</h1>
+        <p>You were invited as @(_invitation.Type == InvitationType.Scholar ? "a scholar" : "an admin") (@_invitation.Email).</p>
+
+        @if (_errorMessage is not null)
+        {
+            <div class="auth-error">@_errorMessage</div>
+        }
+
+        <EditForm Model="AcceptInput" FormName="register-accept-invitation" method="post" OnValidSubmit="AcceptInvitationAsync">
+            <DataAnnotationsValidator />
+
+            @if (_invitation.FirstName is null)
+            {
+                <div class="auth-field">
+                    <label>First name</label>
+                    <InputText @bind-Value="AcceptInput.FirstName" />
+                </div>
+            }
+            @if (_invitation.LastName is null)
+            {
+                <div class="auth-field">
+                    <label>Last name</label>
+                    <InputText @bind-Value="AcceptInput.LastName" />
+                </div>
+            }
+            @if (_invitation.DateOfBirth is null)
+            {
+                <div class="auth-field">
+                    <label>Date of birth</label>
+                    <InputDate @bind-Value="AcceptInput.DateOfBirth" />
+                </div>
+            }
+            @if (_invitation.Address is null)
+            {
+                <div class="auth-field">
+                    <label>Address</label>
+                    <InputText @bind-Value="AcceptInput.Address" />
+                </div>
+            }
+            @if (_invitation.ContactNumber is null)
+            {
+                <div class="auth-field">
+                    <label>Contact number</label>
+                    <InputText @bind-Value="AcceptInput.ContactNumber" />
+                </div>
+            }
+
+            <div class="auth-field">
+                <label>Password</label>
+                <InputText type="password" @bind-Value="AcceptInput.Password" autocomplete="new-password" />
+                <ValidationMessage For="() => AcceptInput.Password" />
+            </div>
+
+            <button type="submit" class="auth-button">Complete registration</button>
+        </EditForm>
+    }
+    else
+    {
+        <h1>Registration requires an invitation</h1>
+        <p>@(_errorMessage ?? "Ask a CHED administrator to invite you by email.")</p>
+        <a class="auth-link" href="login">Already have an account? Log in</a>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    private string? Token { get; set; }
+
+    [SupplyParameterFromForm]
+    private SuperAdminInputModel SuperAdminInput { get; set; } = new();
+
+    [SupplyParameterFromForm]
+    private AcceptInvitationInputModel AcceptInput { get; set; } = new();
+
+    private bool _loading = true;
+    private string? _errorMessage;
+    private RegisterMode _mode = RegisterMode.Unavailable;
+    private InvitationByTokenDto? _invitation;
+    private Guid _token;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Guid.TryParse(Token, out var token))
+        {
+            _token = token;
+            _invitation = await Mediator.Send(new GetInvitationByTokenQuery(token));
+
+            if (_invitation is not null && _invitation.Status == InvitationStatus.Pending)
+            {
+                _mode = RegisterMode.AcceptInvitation;
+            }
+            else
+            {
+                _mode = RegisterMode.Unavailable;
+                _errorMessage = "This invitation link is invalid, expired, or has already been used.";
+            }
+        }
+        else
+        {
+            var isFirstRun = await Mediator.Send(new IsFirstRunQuery());
+            _mode = isFirstRun ? RegisterMode.FirstRunSuperAdmin : RegisterMode.Unavailable;
+        }
+
+        _loading = false;
+    }
+
+    private async Task RegisterSuperAdminAsync()
+    {
+        try
+        {
+            await Mediator.Send(new RegisterSuperAdminCommand(
+                SuperAdminInput.Email,
+                SuperAdminInput.Password,
+                SuperAdminInput.FirstName,
+                SuperAdminInput.LastName));
+
+            await SignInManager.PasswordSignInAsync(SuperAdminInput.Email, SuperAdminInput.Password, isPersistent: true, lockoutOnFailure: false);
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+        catch (DomainException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private async Task AcceptInvitationAsync()
+    {
+        try
+        {
+            await Mediator.Send(new AcceptInvitationCommand(
+                _token,
+                AcceptInput.Password,
+                AcceptInput.FirstName,
+                AcceptInput.LastName,
+                AcceptInput.DateOfBirth,
+                AcceptInput.Address,
+                AcceptInput.ContactNumber));
+
+            await SignInManager.PasswordSignInAsync(_invitation!.Email, AcceptInput.Password, isPersistent: true, lockoutOnFailure: false);
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+        catch (DomainException ex)
+        {
+            _errorMessage = ex.Message;
+        }
+    }
+
+    private enum RegisterMode { Unavailable, FirstRunSuperAdmin, AcceptInvitation }
+
+    private class SuperAdminInputModel
+    {
+        [Required]
+        public string FirstName { get; set; } = string.Empty;
+
+        [Required]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required, EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required, MinLength(8)]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    private class AcceptInvitationInputModel
+    {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public string? Address { get; set; }
+        public string? ContactNumber { get; set; }
+
+        [Required, MinLength(8)]
+        public string Password { get; set; } = string.Empty;
+    }
+}
