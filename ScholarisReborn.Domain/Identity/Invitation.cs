@@ -10,7 +10,7 @@ public record InvitationSeedData
 {
     public string? FirstName { get; private init; }
     public string? LastName { get; private init; }
-    public DateTime? DateOfBirth { get; private init; }
+    public DateOnly? DateOfBirth { get; private init; }
     public string? Address { get; private init; }
     public string? ContactNumber { get; private init; }
 
@@ -19,7 +19,7 @@ public record InvitationSeedData
     public static InvitationSeedData Create(
         string? firstName = null,
         string? lastName = null,
-        DateTime? dateOfBirth = null,
+        DateOnly? dateOfBirth = null,
         string? address = null,
         string? contactNumber = null)
     {

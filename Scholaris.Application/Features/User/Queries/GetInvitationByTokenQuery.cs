@@ -5,7 +5,7 @@ public record InvitationByTokenDto(
     InvitationStatus Status,
     string? FirstName,
     string? LastName,
-    DateTime? DateOfBirth,
+    DateOnly? DateOfBirth,
     string? Address,
     string? ContactNumber);
 

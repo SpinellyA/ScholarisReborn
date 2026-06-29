@@ -5,6 +5,6 @@ public record InviteAdminCommand(
     string Email,
     string? FirstName = null,
     string? LastName = null,
-    DateTime? DateOfBirth = null,
+    DateOnly? DateOfBirth = null,
     string? Address = null,
     string? ContactNumber = null) : ICommand;

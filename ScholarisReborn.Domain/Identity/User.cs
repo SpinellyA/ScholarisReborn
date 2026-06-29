@@ -8,7 +8,7 @@ public record UserProfile
 {
     public string FirstName { get; private init; } = string.Empty;
     public string LastName { get; private init; } = string.Empty;
-    public DateTime? DateOfBirth { get; private init; }
+    public DateOnly? DateOfBirth { get; private init; }
     public string? Address { get; private init; }
     public string? ContactNumber { get; private init; }
 
@@ -17,7 +17,7 @@ public record UserProfile
     public static UserProfile Create(
         string firstName,
         string lastName,
-        DateTime? dateOfBirth = null,
+        DateOnly? dateOfBirth = null,
         string? address = null,
         string? contactNumber = null)
     {
