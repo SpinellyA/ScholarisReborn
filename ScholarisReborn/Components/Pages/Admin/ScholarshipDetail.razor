@@ -1,0 +1,191 @@
+@page "/admin/scholarships/{ScholarshipId:guid}"
+@rendermode RenderModes.InteractiveServerNoPrerender
+@attribute [Authorize(Roles = ApplicationRoles.SuperAdmin)]
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<InteractiveProviders />
+
+<PageTitle>Scholarship</PageTitle>
+
+@if (_s is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudBreadcrumbs Items="_crumbs" Class="px-0 mb-4" />
+
+    <MudGrid Spacing="4">
+
+        <MudItem xs="12" md="4">
+            <MudCard Class="scholaris-card" Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.h5">@_s.Name</MudText>
+                    @if (!string.IsNullOrWhiteSpace(_s.Description))
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2">@_s.Description</MudText>
+                    }
+                    <MudList T="string" Dense="true" Class="mt-3">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Groups">@_s.ScholarCount scholar(s)</MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Payments">@_s.Grants.Count grant(s)</MudListItem>
+                    </MudList>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton StartIcon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="OpenEdit">Edit</MudButton>
+                    <MudSpacer />
+                    <MudButton StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _showDelete = true)">Delete</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            <MudCard Class="scholaris-card" Elevation="2">
+                <MudCardContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                        <MudText Typo="Typo.h6">Financial grants</MudText>
+                        <MudSpacer />
+                        <MudButton Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" Color="Color.Secondary" OnClick="OpenAddGrant">Add grant</MudButton>
+                    </MudStack>
+                    @if (_s.Grants.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2">No grants yet.</MudText>
+                    }
+                    else
+                    {
+                        <MudTable Items="_s.Grants" Hover="true" Elevation="0" Dense="true">
+                            <HeaderContent><MudTh>Name</MudTh><MudTh>Amount</MudTh><MudTh></MudTh></HeaderContent>
+                            <RowTemplate>
+                                <MudTd>@context.Name</MudTd>
+                                <MudTd>₱@context.Amount.ToString("N2")</MudTd>
+                                <MudTd>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveGrantAsync(context.Name))" />
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudDialog @bind-Visible="_showEdit">
+        <TitleContent><MudText Typo="Typo.h6">Edit scholarship</MudText></TitleContent>
+        <DialogContent>
+            <MudTextField @bind-Value="_eName" Label="Name" Class="mb-2" />
+            <MudTextField @bind-Value="_eDescription" Label="Description" Lines="2" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showEdit = false)">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveEditAsync" Disabled="_busy">Save</MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <MudDialog @bind-Visible="_showAddGrant">
+        <TitleContent><MudText Typo="Typo.h6">Add grant</MudText></TitleContent>
+        <DialogContent>
+            <MudTextField @bind-Value="_grantName" Label="Grant name" Class="mb-2" />
+            <MudNumericField @bind-Value="_grantAmount" Label="Amount" Min="0.0" Format="N2" />
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showAddGrant = false)">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="AddGrantAsync" Disabled="_busy">Add</MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <MudDialog @bind-Visible="_showDelete">
+        <TitleContent><MudText Typo="Typo.h6">Delete scholarship?</MudText></TitleContent>
+        <DialogContent>
+            <MudText>This permanently deletes <b>@_s.Name</b>. This can't be undone.</MudText>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showDelete = false)">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="DeleteAsync" Disabled="_busy">Delete</MudButton>
+        </DialogActions>
+    </MudDialog>
+}
+
+@code {
+    [Parameter] public Guid ScholarshipId { get; set; }
+
+    private ScholarshipDetailsDto? _s;
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    private bool _showEdit, _showAddGrant, _showDelete;
+    private string _eName = "", _eDescription = "";
+    private string _grantName = "";
+    private double _grantAmount;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _s = await Mediator.Send(new GetScholarshipByIdQuery(ScholarshipId));
+        _crumbs = new()
+        {
+            new BreadcrumbItem("Scholarships", "/admin/scholarships"),
+            new BreadcrumbItem(_s?.Name ?? "Scholarship", null, disabled: true)
+        };
+    }
+
+    private void OpenEdit()
+    {
+        if (_s is null) return;
+        _eName = _s.Name;
+        _eDescription = _s.Description;
+        _showEdit = true;
+    }
+
+    private void OpenAddGrant()
+    {
+        _grantName = "";
+        _grantAmount = 0;
+        _showAddGrant = true;
+    }
+
+    private async Task SaveEditAsync()
+        => await Run(async () =>
+        {
+            await Mediator.Send(new UpdateScholarshipCommand(ScholarshipId, _eName, _eDescription));
+            Snackbar.Add("Scholarship updated.", Severity.Success);
+            _showEdit = false;
+            await LoadAsync();
+        });
+
+    private async Task AddGrantAsync()
+        => await Run(async () =>
+        {
+            await Mediator.Send(new AddScholarshipGrantCommand(ScholarshipId, _grantName, _grantAmount));
+            Snackbar.Add("Grant added.", Severity.Success);
+            _showAddGrant = false;
+            await LoadAsync();
+        });
+
+    private async Task RemoveGrantAsync(string grantName)
+        => await Run(async () =>
+        {
+            await Mediator.Send(new RemoveScholarshipGrantCommand(ScholarshipId, grantName));
+            Snackbar.Add("Grant removed.", Severity.Success);
+            await LoadAsync();
+        });
+
+    private async Task DeleteAsync()
+        => await Run(async () =>
+        {
+            await Mediator.Send(new DeleteScholarshipCommand(ScholarshipId));
+            Snackbar.Add("Scholarship deleted.", Severity.Success);
+            Nav.NavigateTo("/admin/scholarships");
+        });
+
+    private async Task Run(Func<Task> action)
+    {
+        _busy = true;
+        try { await action(); }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _busy = false; }
+    }
+}

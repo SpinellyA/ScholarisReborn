@@ -30,6 +30,20 @@
         };
     }
 
+    public void UpdateDetails(string schoolCode, string name, string description, Region region, TermSystem termSystem)
+    {
+        if (string.IsNullOrWhiteSpace(schoolCode))
+            throw new DomainException("School code cannot be empty.");
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("School name cannot be empty.");
+
+        SchoolCode = schoolCode;
+        Name = name;
+        Description = description;
+        Region = region;
+        TermSystem = termSystem;
+    }
+
     public Term OpenTerm(int termNumber)
     {
         if (_terms.Any(t => t.IsOpen))

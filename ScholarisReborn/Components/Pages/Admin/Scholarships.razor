@@ -4,128 +4,89 @@
 @using MediatR
 @inject IMediator Mediator
 @inject ISnackbar Snackbar
+@inject NavigationManager Nav
 
 <InteractiveProviders />
 
 <PageTitle>Scholarships</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Scholarships</MudText>
-
-<MudPaper Class="pa-4 mb-4 scholaris-card">
-    <MudText Typo="Typo.h6" GutterBottom="true">Create scholarship</MudText>
-    <MudGrid>
-        <MudItem xs="12" sm="4">
-            <MudTextField @bind-Value="_name" Label="Name" />
-        </MudItem>
-        <MudItem xs="12" sm="6">
-            <MudTextField @bind-Value="_description" Label="Description" />
-        </MudItem>
-        <MudItem xs="12" sm="2" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateScholarshipAsync" FullWidth="true">Create</MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
-
-<MudPaper Class="pa-4 mb-4 scholaris-card">
-    <MudText Typo="Typo.h6" GutterBottom="true">Add a grant</MudText>
-    <MudGrid>
-        <MudItem xs="12" sm="4">
-            <MudSelect T="Guid" Label="Scholarship" @bind-Value="_grantScholarshipId">
-                @if (_scholarships is not null)
-                {
-                    @foreach (var scholarship in _scholarships)
-                    {
-                        <MudSelectItem Value="@scholarship.Id">@scholarship.Name</MudSelectItem>
-                    }
-                }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudTextField @bind-Value="_grantName" Label="Grant name" />
-        </MudItem>
-        <MudItem xs="12" sm="2">
-            <MudNumericField @bind-Value="_grantAmount" Label="Amount" Min="0.0" />
-        </MudItem>
-        <MudItem xs="12" sm="2" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="AddGrantAsync" FullWidth="true">Add grant</MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4">Scholarships</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreate">Add scholarship</MudButton>
+</MudStack>
 
 @if (_scholarships is null)
 {
     <MudProgressCircular Indeterminate="true" />
 }
+else if (_scholarships.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">No scholarships yet. Use “Add scholarship” to create one.</MudAlert>
+}
 else
 {
-    <MudTable Items="_scholarships" Hover="true" Elevation="0">
+    <MudTable Items="_scholarships" Hover="true" Elevation="0" T="ScholarshipOverviewDto"
+              OnRowClick="@((TableRowClickEventArgs<ScholarshipOverviewDto> a) => Open(a.Item))" Class="cursor-pointer">
         <HeaderContent>
             <MudTh>Name</MudTh>
             <MudTh>Description</MudTh>
+            <MudTh>Grants</MudTh>
+            <MudTh>Scholars</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>@context.Name</MudTd>
-            <MudTd>@context.Description</MudTd>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd DataLabel="Grants">@context.GrantCount</MudTd>
+            <MudTd DataLabel="Scholars">@context.ScholarCount</MudTd>
         </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
     </MudTable>
 }
 
-@code {
-    private List<ScholarshipListItemDto>? _scholarships;
+<MudDialog @bind-Visible="_showCreate">
+    <TitleContent><MudText Typo="Typo.h6">Add scholarship</MudText></TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Name" Class="mb-2" />
+        <MudTextField @bind-Value="_description" Label="Description" Lines="2" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showCreate = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync" Disabled="_busy">Create</MudButton>
+    </DialogActions>
+</MudDialog>
 
+@code {
+    private List<ScholarshipOverviewDto>? _scholarships;
+    private bool _showCreate;
+    private bool _busy;
     private string _name = string.Empty;
     private string _description = string.Empty;
 
-    private Guid _grantScholarshipId;
-    private string _grantName = string.Empty;
-    private double _grantAmount;
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
-    protected override async Task OnInitializedAsync()
+    private async Task LoadAsync() => _scholarships = await Mediator.Send(new GetScholarshipsOverviewQuery());
+
+    private void Open(ScholarshipOverviewDto s) => Nav.NavigateTo($"/admin/scholarships/{s.Id}");
+
+    private void OpenCreate()
     {
-        await LoadScholarshipsAsync();
+        _name = _description = string.Empty;
+        _showCreate = true;
     }
 
-    private async Task LoadScholarshipsAsync()
+    private async Task CreateAsync()
     {
-        _scholarships = await Mediator.Send(new GetScholarshipsQuery());
-    }
-
-    private async Task CreateScholarshipAsync()
-    {
+        _busy = true;
         try
         {
             await Mediator.Send(new CreateScholarshipCommand(_name, _description));
-            _name = string.Empty;
-            _description = string.Empty;
             Snackbar.Add("Scholarship created.", Severity.Success);
-            await LoadScholarshipsAsync();
+            _showCreate = false;
+            await LoadAsync();
         }
-        catch (DomainException ex)
-        {
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
-        catch (FluentValidation.ValidationException ex)
-        {
-            Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error);
-        }
-    }
-
-    private async Task AddGrantAsync()
-    {
-        try
-        {
-            await Mediator.Send(new AddScholarshipGrantCommand(_grantScholarshipId, _grantName, _grantAmount));
-            _grantName = string.Empty;
-            _grantAmount = 0;
-            Snackbar.Add("Grant added.", Severity.Success);
-        }
-        catch (DomainException ex)
-        {
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
-        catch (FluentValidation.ValidationException ex)
-        {
-            Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error);
-        }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _busy = false; }
     }
 }

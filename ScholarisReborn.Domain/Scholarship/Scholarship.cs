@@ -17,6 +17,22 @@
         return new Scholarship { Id = Guid.CreateVersion7(), Name = name, Description = description };
     }
 
+    public void UpdateDetails(string name, string description)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("Scholarship name cannot be empty.");
+
+        Name = name;
+        Description = description;
+    }
+
+    public void RemoveGrant(string grantName)
+    {
+        var grant = _grants.FirstOrDefault(g => g.Name == grantName)
+            ?? throw new DomainException($"No grant named '{grantName}' exists.");
+        _grants.Remove(grant);
+    }
+
     public void AddGrant(FinancialGrant grant)
     {
         if (_grants.Any(g => g.Name == grant.Name))

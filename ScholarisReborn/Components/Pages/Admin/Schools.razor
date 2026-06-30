@@ -4,110 +4,115 @@
 @using MediatR
 @inject IMediator Mediator
 @inject ISnackbar Snackbar
+@inject NavigationManager Nav
 
 <InteractiveProviders />
 
 <PageTitle>Schools</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Schools</MudText>
-
-<MudPaper Class="pa-4 mb-4 scholaris-card">
-    <MudText Typo="Typo.h6" GutterBottom="true">Create school</MudText>
-    <MudGrid>
-        <MudItem xs="12" sm="3">
-            <MudTextField @bind-Value="_schoolCode" Label="School code" />
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudTextField @bind-Value="_name" Label="Name" />
-        </MudItem>
-        <MudItem xs="12" sm="5">
-            <MudTextField @bind-Value="_description" Label="Description" />
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudSelect T="Region" Label="Region" @bind-Value="_region">
-                @foreach (var region in Enum.GetValues<Region>())
-                {
-                    <MudSelectItem Value="@region">@region</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudSelect T="TermSystem" Label="Term system" @bind-Value="_termSystem">
-                @foreach (var termSystem in Enum.GetValues<TermSystem>())
-                {
-                    <MudSelectItem Value="@termSystem">@termSystem</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" sm="4" Class="d-flex align-end">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateSchoolAsync" FullWidth="true">Create</MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4">Schools</MudText>
+    <MudSpacer />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenCreate())">Add school</MudButton>
+</MudStack>
 
 @if (_schools is null)
 {
     <MudProgressCircular Indeterminate="true" />
 }
+else if (_schools.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">No schools yet. Use “Add school” to create one.</MudAlert>
+}
 else
 {
-    <MudTable Items="_schools" Hover="true" Elevation="0">
+    <MudTable Items="_schools" Hover="true" Elevation="0" T="SchoolOverviewDto"
+              OnRowClick="@((TableRowClickEventArgs<SchoolOverviewDto> a) => Open(a.Item))" Class="cursor-pointer">
         <HeaderContent>
             <MudTh>Code</MudTh>
             <MudTh>Name</MudTh>
             <MudTh>Region</MudTh>
             <MudTh>Term system</MudTh>
-            <MudTh></MudTh>
+            <MudTh>Active scholars</MudTh>
+            <MudTh>Current term</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>@context.SchoolCode</MudTd>
-            <MudTd>@context.Name</MudTd>
-            <MudTd>@context.Region</MudTd>
-            <MudTd>@context.TermSystem</MudTd>
-            <MudTd>
-                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="@($"/admin/schools/{context.Id}")">Manage terms</MudButton>
+            <MudTd DataLabel="Code">@context.SchoolCode</MudTd>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Region">@context.Region</MudTd>
+            <MudTd DataLabel="Term system">@context.TermSystem</MudTd>
+            <MudTd DataLabel="Active scholars">@context.ActiveScholars</MudTd>
+            <MudTd DataLabel="Current term">
+                @if (context.OpenTermNumber is not null)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success">Term @context.OpenTermNumber open</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default">No open term</MudChip>
+                }
             </MudTd>
         </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
     </MudTable>
 }
 
-@code {
-    private List<SchoolListItemDto>? _schools;
+<MudDialog @bind-Visible="_showCreate">
+    <TitleContent><MudText Typo="Typo.h6">Add school</MudText></TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_code" Label="School code" Class="mb-2" />
+        <MudTextField @bind-Value="_name" Label="Name" Class="mb-2" />
+        <MudTextField @bind-Value="_description" Label="Description" Lines="2" Class="mb-2" />
+        <MudSelect T="Region" Label="Region" @bind-Value="_region" Class="mb-2">
+            @foreach (var r in Enum.GetValues<Region>()) { <MudSelectItem Value="@r">@r</MudSelectItem> }
+        </MudSelect>
+        <MudSelect T="TermSystem" Label="Term system" @bind-Value="_termSystem">
+            @foreach (var t in Enum.GetValues<TermSystem>()) { <MudSelectItem Value="@t">@t</MudSelectItem> }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => _showCreate = false)">Cancel</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync" Disabled="_busy">Create</MudButton>
+    </DialogActions>
+</MudDialog>
 
-    private string _schoolCode = string.Empty;
+@code {
+    private List<SchoolOverviewDto>? _schools;
+    private bool _showCreate;
+    private bool _busy;
+
+    private string _code = string.Empty;
     private string _name = string.Empty;
     private string _description = string.Empty;
     private Region _region;
     private TermSystem _termSystem;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync() => _schools = await Mediator.Send(new GetSchoolsOverviewQuery());
+
+    private void Open(SchoolOverviewDto s) => Nav.NavigateTo($"/admin/schools/{s.Id}");
+
+    private void OpenCreate()
     {
-        await LoadSchoolsAsync();
+        _code = _name = _description = string.Empty;
+        _region = Region.NCR;
+        _termSystem = TermSystem.Semestral;
+        _showCreate = true;
     }
 
-    private async Task LoadSchoolsAsync()
+    private async Task CreateAsync()
     {
-        _schools = await Mediator.Send(new GetSchoolsQuery());
-    }
-
-    private async Task CreateSchoolAsync()
-    {
+        _busy = true;
         try
         {
-            await Mediator.Send(new CreateSchoolCommand(_schoolCode, _name, _description, _region, _termSystem));
-            _schoolCode = string.Empty;
-            _name = string.Empty;
-            _description = string.Empty;
+            await Mediator.Send(new CreateSchoolCommand(_code, _name, _description, _region, _termSystem));
             Snackbar.Add("School created.", Severity.Success);
-            await LoadSchoolsAsync();
+            _showCreate = false;
+            await LoadAsync();
         }
-        catch (DomainException ex)
-        {
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
-        catch (FluentValidation.ValidationException ex)
-        {
-            Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error);
-        }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _busy = false; }
     }
 }

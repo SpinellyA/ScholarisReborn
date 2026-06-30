@@ -4,6 +4,7 @@
 @using MediatR
 @inject IMediator Mediator
 @inject ISnackbar Snackbar
+@inject NavigationManager Nav
 
 <InteractiveProviders />
 
@@ -11,127 +12,221 @@
 
 @if (_school is null)
 {
-    <MudProgressCircular Indeterminate="true" />
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
 else
 {
-    <MudText Typo="Typo.h4" GutterBottom="true">@_school.Name (@_school.SchoolCode)</MudText>
-    <MudText Typo="Typo.body2" Class="mb-4">@_school.Region &middot; @_school.TermSystem</MudText>
+    <MudBreadcrumbs Items="_crumbs" Class="px-0 mb-4" />
 
-    <MudGrid Class="mb-4">
-        <MudItem xs="12" sm="4">
-            <MudPaper Class="pa-4">
-                <MudText Typo="Typo.subtitle2">Active scholars</MudText>
-                <MudText Typo="Typo.h5">@_school.ActiveScholarsCount</MudText>
-            </MudPaper>
+    <MudGrid Spacing="4">
+
+        <!-- LEFT: summary + actions -->
+        <MudItem xs="12" md="4">
+            <MudCard Class="scholaris-card" Elevation="2">
+                <MudCardContent>
+                    <MudText Typo="Typo.h5">@_school.Name</MudText>
+                    <MudText Typo="Typo.body2" Class="mb-3">@_school.SchoolCode</MudText>
+
+                    <MudList T="string" Dense="true">
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Place">@_school.Region</MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.CalendarMonth">@_school.TermSystem</MudListItem>
+                        <MudListItem T="string" Icon="@Icons.Material.Filled.Groups">@_school.ActiveScholarsCount active scholar(s)</MudListItem>
+                    </MudList>
+
+                    @if (!string.IsNullOrWhiteSpace(_school.Description))
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-3">@_school.Description</MudText>
+                    }
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton StartIcon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="OpenEdit">Edit</MudButton>
+                    <MudSpacer />
+                    <MudButton StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _showDelete = true)">Delete</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+
+        <!-- RIGHT: term management + history -->
+        <MudItem xs="12" md="8">
+            <MudStack Spacing="4">
+
+                <MudCard Class="scholaris-card" Elevation="2">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true">Current term</MudText>
+                        @if (_openTerm is null)
+                        {
+                            <MudText Typo="Typo.body2" Class="mb-3">No term is open. Open one to start accepting submissions.</MudText>
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                <MudNumericField @bind-Value="_termNumber" Label="Term number" Min="1" Style="max-width:160px" />
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenTermAsync" Disabled="_busy">Open term</MudButton>
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-3">
+                                Term @_openTerm.TermNumber is open (started @_openTerm.StartedAt.ToLocalTime().ToString("g")).
+                            </MudAlert>
+                            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.LockClock" OnClick="@(() => _showClose = true)" Disabled="_busy">Close term</MudButton>
+                            <MudText Typo="Typo.caption" Class="mt-2">
+                                Closing auto-withholds any active scholar who didn't submit their requirements this term.
+                            </MudText>
+                        }
+                    </MudCardContent>
+                </MudCard>
+
+                <MudCard Class="scholaris-card" Elevation="2">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true">Term history</MudText>
+                        @if (_school.Terms.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2">No terms yet.</MudText>
+                        }
+                        else
+                        {
+                            <MudTable Items="_school.Terms.OrderByDescending(t => t.TermNumber)" Hover="true" Elevation="0" Dense="true">
+                                <HeaderContent>
+                                    <MudTh>Term #</MudTh><MudTh>Started</MudTh><MudTh>Ended</MudTh><MudTh>Status</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd>@context.TermNumber</MudTd>
+                                    <MudTd>@context.StartedAt.ToLocalTime().ToString("g")</MudTd>
+                                    <MudTd>@(context.EndedAt?.ToLocalTime().ToString("g") ?? "—")</MudTd>
+                                    <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.IsOpen ? Color.Success : Color.Default)">@(context.IsOpen ? "Open" : "Closed")</MudChip></MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        }
+                    </MudCardContent>
+                </MudCard>
+
+            </MudStack>
         </MudItem>
     </MudGrid>
 
-    @if (_openTerm is null)
-    {
-        <MudPaper Class="pa-4 mb-4 scholaris-card">
-            <MudText Typo="Typo.h6" GutterBottom="true">Open a new term</MudText>
-            <MudGrid>
-                <MudItem xs="12" sm="3">
-                    <MudNumericField @bind-Value="_termNumber" Label="Term number" Min="1" />
-                </MudItem>
-                <MudItem xs="12" sm="3" Class="d-flex align-end">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenTermAsync" FullWidth="true">Open term</MudButton>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
-    }
-    else
-    {
-        <MudPaper Class="pa-4 mb-4 scholaris-card">
-            <MudText Typo="Typo.h6" GutterBottom="true">Term @_openTerm.TermNumber is open</MudText>
-            <MudText Typo="Typo.body2" Class="mb-4">Started @_openTerm.StartedAt.ToLocalTime().ToString("g")</MudText>
-            <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="CloseTermAsync">
-                Close term
-            </MudButton>
-            <MudText Typo="Typo.caption" Class="mt-2">
-                Closing will automatically withhold any active scholar who hasn't submitted both a grade transcript and proof of registration for this term.
-            </MudText>
-        </MudPaper>
-    }
+    <!-- EDIT DIALOG -->
+    <MudDialog @bind-Visible="_showEdit">
+        <TitleContent><MudText Typo="Typo.h6">Edit school</MudText></TitleContent>
+        <DialogContent>
+            <MudTextField @bind-Value="_eCode" Label="School code" Class="mb-2" />
+            <MudTextField @bind-Value="_eName" Label="Name" Class="mb-2" />
+            <MudTextField @bind-Value="_eDescription" Label="Description" Lines="2" Class="mb-2" />
+            <MudSelect T="Region" Label="Region" @bind-Value="_eRegion" Class="mb-2">
+                @foreach (var r in Enum.GetValues<Region>()) { <MudSelectItem Value="@r">@r</MudSelectItem> }
+            </MudSelect>
+            <MudSelect T="TermSystem" Label="Term system" @bind-Value="_eTermSystem">
+                @foreach (var t in Enum.GetValues<TermSystem>()) { <MudSelectItem Value="@t">@t</MudSelectItem> }
+            </MudSelect>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showEdit = false)">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveEditAsync" Disabled="_busy">Save</MudButton>
+        </DialogActions>
+    </MudDialog>
 
-    <MudText Typo="Typo.h6" GutterBottom="true">Term history</MudText>
-    <MudTable Items="_school.Terms" Hover="true" Elevation="0">
-        <HeaderContent>
-            <MudTh>Term #</MudTh>
-            <MudTh>Started</MudTh>
-            <MudTh>Ended</MudTh>
-            <MudTh>Status</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.TermNumber</MudTd>
-            <MudTd>@context.StartedAt.ToLocalTime().ToString("g")</MudTd>
-            <MudTd>@(context.EndedAt?.ToLocalTime().ToString("g") ?? "-")</MudTd>
-            <MudTd>
-                <MudChip T="string" Color="@(context.IsOpen ? Color.Success : Color.Default)" Size="Size.Small">
-                    @(context.IsOpen ? "Open" : "Closed")
-                </MudChip>
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
+    <!-- DELETE CONFIRM -->
+    <MudDialog @bind-Visible="_showDelete">
+        <TitleContent><MudText Typo="Typo.h6">Delete school?</MudText></TitleContent>
+        <DialogContent>
+            <MudText>This permanently deletes <b>@_school.Name</b> and its term history. This can't be undone.</MudText>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showDelete = false)">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="DeleteAsync" Disabled="_busy">Delete</MudButton>
+        </DialogActions>
+    </MudDialog>
+
+    <!-- CLOSE TERM CONFIRM -->
+    <MudDialog @bind-Visible="_showClose">
+        <TitleContent><MudText Typo="Typo.h6">Close term @_openTerm?.TermNumber?</MudText></TitleContent>
+        <DialogContent>
+            <MudText>Active scholars who didn't submit this term will be automatically withheld.</MudText>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="@(() => _showClose = false)">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="CloseTermAsync" Disabled="_busy">Close term</MudButton>
+        </DialogActions>
+    </MudDialog>
 }
 
 @code {
-    [Parameter]
-    public Guid SchoolId { get; set; }
+    [Parameter] public Guid SchoolId { get; set; }
 
     private SchoolDetailsDto? _school;
     private TermDto? _openTerm;
     private int _termNumber = 1;
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadAsync();
-    }
+    private bool _showEdit, _showDelete, _showClose;
+    private string _eCode = "", _eName = "", _eDescription = "";
+    private Region _eRegion;
+    private TermSystem _eTermSystem;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
         _school = await Mediator.Send(new GetSchoolByIdQuery(SchoolId));
         _openTerm = _school?.Terms.FirstOrDefault(t => t.IsOpen);
         _termNumber = (_school?.Terms.Select(t => t.TermNumber).DefaultIfEmpty(0).Max() ?? 0) + 1;
+        _crumbs = new()
+        {
+            new BreadcrumbItem("Schools", "/admin/schools"),
+            new BreadcrumbItem(_school?.Name ?? "School", null, disabled: true)
+        };
     }
 
-    private async Task OpenTermAsync()
+    private void OpenEdit()
     {
-        try
+        if (_school is null) return;
+        _eCode = _school.SchoolCode;
+        _eName = _school.Name;
+        _eDescription = _school.Description;
+        _eRegion = _school.Region;
+        _eTermSystem = _school.TermSystem;
+        _showEdit = true;
+    }
+
+    private async Task SaveEditAsync()
+        => await Run(async () =>
+        {
+            await Mediator.Send(new UpdateSchoolCommand(SchoolId, _eCode, _eName, _eDescription, _eRegion, _eTermSystem));
+            Snackbar.Add("School updated.", Severity.Success);
+            _showEdit = false;
+            await LoadAsync();
+        });
+
+    private async Task DeleteAsync()
+        => await Run(async () =>
+        {
+            await Mediator.Send(new DeleteSchoolCommand(SchoolId));
+            Snackbar.Add("School deleted.", Severity.Success);
+            Nav.NavigateTo("/admin/schools");
+        });
+
+    private async Task OpenTermAsync()
+        => await Run(async () =>
         {
             await Mediator.Send(new OpenTermCommand(SchoolId, _termNumber));
             Snackbar.Add("Term opened.", Severity.Success);
             await LoadAsync();
-        }
-        catch (DomainException ex)
-        {
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
-        catch (FluentValidation.ValidationException ex)
-        {
-            Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error);
-        }
-    }
+        });
 
     private async Task CloseTermAsync()
-    {
-        if (_openTerm is null)
-            return;
-
-        try
+        => await Run(async () =>
         {
+            if (_openTerm is null) return;
             await Mediator.Send(new CloseTermCommand(SchoolId, _openTerm.Id));
             Snackbar.Add("Term closed.", Severity.Success);
+            _showClose = false;
             await LoadAsync();
-        }
-        catch (DomainException ex)
-        {
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
-        catch (FluentValidation.ValidationException ex)
-        {
-            Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error);
-        }
+        });
+
+    private async Task Run(Func<Task> action)
+    {
+        _busy = true;
+        try { await action(); }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _busy = false; }
     }
 }
