@@ -138,6 +138,11 @@ else
 
         _schools = await Mediator.Send(new GetSchoolsQuery());
         _scholarships = await Mediator.Send(new GetScholarshipsQuery());
+
+        // Pre-select the first option so the picker doesn't show an empty Guid.
+        _schoolId = _schools.FirstOrDefault()?.Id ?? Guid.Empty;
+        _scholarshipId = _scholarships.FirstOrDefault()?.Id ?? Guid.Empty;
+
         await LoadInvitationsAsync();
     }
 

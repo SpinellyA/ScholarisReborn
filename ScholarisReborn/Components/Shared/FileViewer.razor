@@ -1,0 +1,78 @@
+@* Inline viewer for a confidential document served from /files/{id}. Renders images and PDFs
+   directly on the page (so admins can process without extra clicks) and opens a larger,
+   zoomable view on Expand. *@
+
+<MudPaper Class="pa-2 scholaris-card" Elevation="1">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+        <MudText Typo="Typo.subtitle2">@Title</MudText>
+        <MudSpacer />
+        @if (FileId is not null)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.OpenInFull" Size="Size.Small" OnClick="@(() => _expanded = true)" Title="Expand" />
+            <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Href="@Url" Target="_blank" Title="Open in new tab" />
+        }
+    </MudStack>
+
+    @if (FileId is null)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@EmptyText</MudText>
+    }
+    else if (IsImage)
+    {
+        <div style="max-height:340px;overflow:auto;text-align:center;background:var(--mud-palette-background-gray);border-radius:6px;">
+            <img src="@Url" alt="@Title" style="max-width:100%;cursor:zoom-in;" @onclick="@(() => _expanded = true)" />
+        </div>
+    }
+    else if (IsPdf)
+    {
+        <iframe src="@Url" style="width:100%;height:340px;border:0;border-radius:6px;"></iframe>
+    }
+    else
+    {
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Download" Href="@Url" Target="_blank">Download document</MudButton>
+    }
+</MudPaper>
+
+<MudDialog @bind-Visible="_expanded" Options="_dialogOptions">
+    <TitleContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h6">@Title</MudText>
+            <MudSpacer />
+            @if (IsImage)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.ZoomOut" />
+                <MudSlider T="double" Min="0.5" Max="3" Step="0.1" @bind-Value="_zoom" Style="width:160px;" />
+                <MudIcon Icon="@Icons.Material.Filled.ZoomIn" />
+                <MudText Typo="Typo.caption" Class="ml-2">@($"{_zoom:0.0}x")</MudText>
+            }
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="@(() => _expanded = false)" />
+        </MudStack>
+    </TitleContent>
+    <DialogContent>
+        @if (IsImage)
+        {
+            <div style="max-height:80vh;overflow:auto;text-align:center;">
+                <img src="@Url" alt="@Title" style="@($"transform:scale({_zoom.ToString(System.Globalization.CultureInfo.InvariantCulture)});transform-origin:top center;max-width:100%;")" />
+            </div>
+        }
+        else
+        {
+            <iframe src="@Url" style="width:100%;height:80vh;border:0;"></iframe>
+        }
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [Parameter] public Guid? FileId { get; set; }
+    [Parameter] public string? ContentType { get; set; }
+    [Parameter] public string Title { get; set; } = "Document";
+    [Parameter] public string EmptyText { get; set; } = "Not submitted.";
+
+    private bool _expanded;
+    private double _zoom = 1.0;
+    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.ExtraLarge, FullWidth = true, CloseOnEscapeKey = true };
+
+    private string Url => $"/files/{FileId}";
+    private bool IsImage => ContentType?.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ?? false;
+    private bool IsPdf => ContentType is not null && ContentType.Contains("pdf", StringComparison.OrdinalIgnoreCase);
+}

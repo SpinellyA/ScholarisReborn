@@ -12,8 +12,10 @@ public record TermRecordDetailDto(
     bool GradesRequired,
     string? ProcessedByName,
     Guid? ProofOfRegistrationFileId,
+    string? ProofOfRegistrationContentType,
     List<DetailCourseDto> RegistrationCourses,
     Guid? GradeTranscriptFileId,
+    string? GradeTranscriptContentType,
     double? Gwa,
     List<DetailGradeDto> Grades);
 

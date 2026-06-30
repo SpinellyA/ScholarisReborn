@@ -30,6 +30,16 @@ public class GetTermRecordDetailQueryHandler : IQueryHandler<GetTermRecordDetail
         var grades = record.GradeTranscript?.CourseRecords
             .Select(g => new DetailGradeDto(g.Course.CourseCode, g.Course.Units, g.Grade)).ToList() ?? new();
 
+        // Look up content types so the UI can render images vs PDFs inline.
+        var fileIds = new List<Guid>();
+        if (record.ProofOfRegistration is not null) fileIds.Add(record.ProofOfRegistration.FileId);
+        if (record.GradeTranscript?.FileId is { } gtf) fileIds.Add(gtf);
+        var files = await _context.StoredFiles.AsNoTracking()
+            .Where(f => fileIds.Contains(f.Id))
+            .Select(f => new { f.Id, f.ContentType })
+            .ToListAsync(cancellationToken);
+        string? Ct(Guid? id) => id is null ? null : files.FirstOrDefault(f => f.Id == id)?.ContentType;
+
         return new TermRecordDetailDto(
             record.Id,
             UserDisplay.NameOf(scholarUser),
@@ -41,8 +51,10 @@ public class GetTermRecordDetailQueryHandler : IQueryHandler<GetTermRecordDetail
             record.GradesRequired,
             record.ProcessedByAdminId.HasValue ? UserDisplay.NameOf(processor) : null,
             record.ProofOfRegistration?.FileId,
+            Ct(record.ProofOfRegistration?.FileId),
             registrationCourses,
             record.GradeTranscript?.FileId,
+            Ct(record.GradeTranscript?.FileId),
             record.GradeTranscript?.GWA,
             grades);
     }
