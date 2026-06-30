@@ -67,6 +67,28 @@
         RaiseEvent(new ScholarGraduatedEvent(Id));
     }
 
+    // --- Admin overrides: deliberately bypass the normal transition guards to correct
+    //     system errors / mistakes in scholarship status. Not for day-to-day workflow. ---
+
+    public void OverrideDetails(Guid schoolId, Guid scholarshipId, int batchNumber, string degreeProgram)
+    {
+        if (schoolId == Guid.Empty) throw new DomainException("SchoolId cannot be empty.");
+        if (scholarshipId == Guid.Empty) throw new DomainException("ScholarshipId cannot be empty.");
+        if (batchNumber <= 0) throw new DomainException("Batch number must be positive.");
+        if (string.IsNullOrWhiteSpace(degreeProgram)) throw new DomainException("Degree program cannot be empty.");
+
+        SchoolId = schoolId;
+        ScholarshipId = scholarshipId;
+        BatchNumber = batchNumber;
+        DegreeProgram = degreeProgram;
+    }
+
+    public void ForceStatus(ScholasticStatus status, string? reason = null)
+    {
+        if (CurrentStatus.Status == status) return;
+        TransitionTo(status, string.IsNullOrWhiteSpace(reason) ? "Administrative override." : reason);
+    }
+
     private void TransitionTo(ScholasticStatus status, string? reason = null)
     {
         var current = _statuses.LastOrDefault();

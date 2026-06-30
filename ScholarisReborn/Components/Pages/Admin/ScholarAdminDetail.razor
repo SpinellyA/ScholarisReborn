@@ -1,0 +1,203 @@
+@page "/admin/scholars/{ScholarId:guid}"
+@rendermode RenderModes.InteractiveServerNoPrerender
+@attribute [Authorize(Roles = $"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")]
+@using MediatR
+@inject IMediator Mediator
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<InteractiveProviders />
+
+<PageTitle>Scholar</PageTitle>
+
+@if (_scholar is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudBreadcrumbs Items="_crumbs" Class="px-0 mb-4" />
+
+    <MudGrid Spacing="4">
+
+        <!-- LEFT: summary -->
+        <MudItem xs="12" md="4">
+            <MudCard Class="scholaris-card" Elevation="2">
+                <MudCardContent>
+                    <div class="d-flex justify-center mb-3">
+                        <MudAvatar Color="Color.Primary" Style="height:80px; width:80px; font-size:1.75rem;">
+                            @(string.IsNullOrWhiteSpace(_scholar.FirstName) ? '?' : _scholar.FirstName[0])
+                        </MudAvatar>
+                    </div>
+                    <MudText Typo="Typo.h5" Align="Align.Center">@($"{_scholar.FirstName} {_scholar.LastName}".Trim())</MudText>
+                    <MudText Typo="Typo.body2" Align="Align.Center" Class="mb-3">@_scholar.Email</MudText>
+                    <div class="d-flex justify-center mb-3">
+                        <MudChip T="string" Size="Size.Small" Color="@StatusColor(_status)">@_status</MudChip>
+                    </div>
+                    <MudDivider Class="my-3" />
+                    <MudText Typo="Typo.subtitle2" GutterBottom="true">Status history</MudText>
+                    @if (_scholar.StatusHistory.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2">No history.</MudText>
+                    }
+                    else
+                    {
+                        <MudTimeline TimelinePosition="TimelinePosition.Start">
+                            @foreach (var h in _scholar.StatusHistory)
+                            {
+                                <MudTimelineItem Color="@StatusColor(h.Status)" Size="Size.Small">
+                                    <MudText Typo="Typo.body2"><b>@h.Status</b></MudText>
+                                    <MudText Typo="Typo.caption">@h.StartTime.ToLocalTime().ToString("g")@(h.EndTime is null ? " — present" : $" → {h.EndTime.Value.ToLocalTime():g}")</MudText>
+                                    @if (!string.IsNullOrWhiteSpace(h.Reason))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="d-block">@h.Reason</MudText>
+                                    }
+                                </MudTimelineItem>
+                            }
+                        </MudTimeline>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- RIGHT: override form -->
+        <MudItem xs="12" md="8">
+            <MudStack Spacing="4">
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                    Changes here bypass domain rules (including status-transition guards). Use only to correct errors.
+                </MudAlert>
+
+                <MudCard Class="scholaris-card" Elevation="2">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true">Scholarship record</MudText>
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" sm="6">
+                                <MudSelect T="Guid" @bind-Value="_schoolId" Label="School">
+                                    @foreach (var o in _scholar.Schools) { <MudSelectItem Value="@o.Id">@o.Name</MudSelectItem> }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudSelect T="Guid" @bind-Value="_scholarshipId" Label="Scholarship">
+                                    @foreach (var o in _scholar.Scholarships) { <MudSelectItem Value="@o.Id">@o.Name</MudSelectItem> }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField @bind-Value="_batchNumber" Label="Batch number" Min="1" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="_degreeProgram" Label="Degree program" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudSelect T="ScholasticStatus" @bind-Value="_status" Label="Scholastic status">
+                                    @foreach (var s in Enum.GetValues<ScholasticStatus>()) { <MudSelectItem Value="@s">@s</MudSelectItem> }
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="_statusReason" Label="Reason for status change" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+
+                <MudCard Class="scholaris-card" Elevation="2">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6" GutterBottom="true">Profile</MudText>
+                        <MudGrid Spacing="3">
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="_firstName" Label="First name" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="_lastName" Label="Last name" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudDatePicker @bind-Date="_dateOfBirth" Label="Date of birth" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="_contactNumber" Label="Contact number" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_address" Label="Address" Lines="2" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Text" OnClick="@(() => Nav.NavigateTo("/admin/scholars"))">Cancel</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Save changes</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public Guid ScholarId { get; set; }
+
+    private ScholarAdminDetailDto? _scholar;
+    private bool _busy;
+    private List<BreadcrumbItem> _crumbs = new();
+
+    private Guid _schoolId, _scholarshipId;
+    private int _batchNumber;
+    private string _degreeProgram = string.Empty;
+    private ScholasticStatus _status;
+    private string? _statusReason;
+    private string _firstName = string.Empty, _lastName = string.Empty;
+    private DateTime? _dateOfBirth;
+    private string? _address, _contactNumber;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _scholar = await Mediator.Send(new GetScholarAdminDetailQuery(ScholarId));
+        if (_scholar is null) return;
+
+        _schoolId = _scholar.SchoolId;
+        _scholarshipId = _scholar.ScholarshipId;
+        _batchNumber = _scholar.BatchNumber;
+        _degreeProgram = _scholar.DegreeProgram;
+        _status = _scholar.Status;
+        _statusReason = null;
+        _firstName = _scholar.FirstName;
+        _lastName = _scholar.LastName;
+        _dateOfBirth = _scholar.DateOfBirth?.ToDateTime(TimeOnly.MinValue);
+        _address = _scholar.Address;
+        _contactNumber = _scholar.ContactNumber;
+
+        _crumbs = new()
+        {
+            new BreadcrumbItem("Scholars", "/admin/scholars"),
+            new BreadcrumbItem($"{_firstName} {_lastName}".Trim(), null, disabled: true)
+        };
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Mediator.Send(new OverrideScholarCommand(
+                ScholarId, _schoolId, _scholarshipId, _batchNumber, _degreeProgram,
+                _status, _statusReason,
+                _firstName, _lastName,
+                _dateOfBirth is null ? null : DateOnly.FromDateTime(_dateOfBirth.Value),
+                _address, _contactNumber));
+            Snackbar.Add("Scholar updated.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (DomainException ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        catch (FluentValidation.ValidationException ex) { Snackbar.Add(string.Join(" ", ex.Errors.Select(e => e.ErrorMessage)), Severity.Error); }
+        finally { _busy = false; }
+    }
+
+    private static Color StatusColor(ScholasticStatus status) => status switch
+    {
+        ScholasticStatus.Active => Color.Success,
+        ScholasticStatus.Withheld => Color.Warning,
+        ScholasticStatus.Terminated => Color.Error,
+        ScholasticStatus.Graduated => Color.Info,
+        _ => Color.Default
+    };
+}

@@ -1,0 +1,86 @@
+@page "/admin/scholars"
+@rendermode RenderModes.InteractiveServerNoPrerender
+@attribute [Authorize(Roles = $"{ApplicationRoles.SuperAdmin},{ApplicationRoles.Admin}")]
+@using MediatR
+@inject IMediator Mediator
+@inject NavigationManager Nav
+
+<InteractiveProviders />
+
+<PageTitle>Scholars</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4">Scholars</MudText>
+</MudStack>
+
+<MudText Typo="Typo.body2" Class="mb-4">
+    Manage scholar records directly. Open a scholar to edit their information or force their
+    scholarship status — this bypasses normal workflow rules and is meant for fixing mistakes.
+</MudText>
+
+@if (_scholars is null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_scholars.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">No scholars yet.</MudAlert>
+}
+else
+{
+    <MudTextField @bind-Value="_search" Placeholder="Search by name, email, school…" Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" Class="mb-3" Style="max-width:420px" />
+
+    <MudTable Items="Filtered" Hover="true" Elevation="0" T="ScholarAdminOverviewDto"
+              OnRowClick="@((TableRowClickEventArgs<ScholarAdminOverviewDto> a) => Open(a.Item))" Class="cursor-pointer">
+        <HeaderContent>
+            <MudTh>Name</MudTh>
+            <MudTh>Email</MudTh>
+            <MudTh>School</MudTh>
+            <MudTh>Scholarship</MudTh>
+            <MudTh>Batch</MudTh>
+            <MudTh>Program</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">@context.FullName</MudTd>
+            <MudTd DataLabel="Email">@context.Email</MudTd>
+            <MudTd DataLabel="School">@context.SchoolName</MudTd>
+            <MudTd DataLabel="Scholarship">@context.ScholarshipName</MudTd>
+            <MudTd DataLabel="Batch">@context.BatchNumber</MudTd>
+            <MudTd DataLabel="Program">@context.DegreeProgram</MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)">@context.Status</MudChip>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent><MudTablePager /></PagerContent>
+    </MudTable>
+}
+
+@code {
+    private List<ScholarAdminOverviewDto>? _scholars;
+    private string _search = string.Empty;
+
+    private IEnumerable<ScholarAdminOverviewDto> Filtered =>
+        _scholars is null ? Enumerable.Empty<ScholarAdminOverviewDto>()
+        : string.IsNullOrWhiteSpace(_search) ? _scholars
+        : _scholars.Where(s =>
+            s.FullName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || s.Email.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || s.SchoolName.Contains(_search, StringComparison.OrdinalIgnoreCase)
+            || s.DegreeProgram.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+        => _scholars = await Mediator.Send(new GetScholarsAdminOverviewQuery());
+
+    private void Open(ScholarAdminOverviewDto s) => Nav.NavigateTo($"/admin/scholars/{s.ScholarId}");
+
+    private static Color StatusColor(ScholasticStatus status) => status switch
+    {
+        ScholasticStatus.Active => Color.Success,
+        ScholasticStatus.Withheld => Color.Warning,
+        ScholasticStatus.Terminated => Color.Error,
+        ScholasticStatus.Graduated => Color.Info,
+        _ => Color.Default
+    };
+}

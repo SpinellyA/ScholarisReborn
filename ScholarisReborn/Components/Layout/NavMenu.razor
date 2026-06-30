@@ -16,6 +16,7 @@
         <Authorized>
             <MudText Typo="Typo.body2" Class="scholaris-nav-section">Administration</MudText>
             <MudNavLink Href="admin/records" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.FactCheck">Records</MudNavLink>
+            <MudNavLink Href="admin/scholars" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Groups">Scholars</MudNavLink>
             <MudNavLink Href="admin/invitations" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.MailOutline">Invitations</MudNavLink>
             <AuthorizeView Roles="@ApplicationRoles.SuperAdmin" Context="superAdminContext">
                 <Authorized>
