@@ -20,7 +20,15 @@ public class SchoolConfiguration : IEntityTypeConfiguration<School>
         {
             tb.ToTable("Terms");
             tb.WithOwner().HasForeignKey("SchoolId");
-            tb.HasKey(t => t.Id);
+
+            // Use a shadow store-generated key (like every other owned collection here) rather than
+            // Term.Id. EF marks a graph-discovered entity Added only when its key is the CLR default;
+            // Term.Id is a client-set Guid (never default), so keying on it made EF treat a brand-new
+            // Term as Modified -> UPDATE of a nonexistent row -> "0 rows affected". Term.Id stays a
+            // normal, queryable Guid column (referenced by TermRecord.TermId and the UI).
+            tb.Property<int>("TermKey").ValueGeneratedOnAdd();
+            tb.HasKey("TermKey");
+            tb.HasIndex(t => t.Id).IsUnique();
         });
 
         builder.Ignore(s => s.DomainEvents);

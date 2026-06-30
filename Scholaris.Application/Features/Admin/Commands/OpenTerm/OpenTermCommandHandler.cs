@@ -12,7 +12,9 @@ public class OpenTermCommandHandler : ICommandHandler<OpenTermCommand>
 
         school.OpenTerm(command.TermNumber);
 
-        _uow.SchoolRepository.Update(school);
+        // No Update() call: 'school' is tracked (loaded via GetById), so EF detects the new Term as
+        // an insert. Calling Update() would force the whole graph to Modified and try to UPDATE the
+        // brand-new Term row (client-assigned Guid key) that doesn't exist yet -> 0 rows -> throws.
         await _uow.SaveChangesAsync(cancellationToken);
     }
 }

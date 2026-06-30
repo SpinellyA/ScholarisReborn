@@ -26,12 +26,11 @@ public class CloseTermCommandHandler : ICommandHandler<CloseTermCommand>
         {
             if (scholar.CurrentStatus.Status == ScholasticStatus.Active && !submittedScholarIds.Contains(scholar.Id))
             {
+                // Tracked entity (loaded via FindAsync) — no Update() call needed; see OpenTermCommandHandler.
                 scholar.Withhold("No submission for term");
-                _uow.ScholarRepository.Update(scholar);
             }
         }
 
-        _uow.SchoolRepository.Update(school);
         await _uow.SaveChangesAsync(cancellationToken);
     }
 }
