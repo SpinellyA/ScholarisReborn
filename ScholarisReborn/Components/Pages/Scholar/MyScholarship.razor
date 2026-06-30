@@ -30,7 +30,7 @@ else
                         <MudTh>Term</MudTh><MudTh>Registration</MudTh><MudTh>Grades</MudTh><MudTh>GWA</MudTh><MudTh>Status</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd>Term @context.TermNumber</MudTd>
+                        <MudTd>@context.TermLabel</MudTd>
                         <MudTd>@(context.PorSubmitted ? "✓" : "—")</MudTd>
                         <MudTd>@(context.GradesSubmitted ? "✓" : "—")</MudTd>
                         <MudTd>@(context.Gwa?.ToString("0.00") ?? "—")</MudTd>

@@ -3,7 +3,7 @@ public record RecordListItemDto(
     string ScholarName,
     string DegreeProgram,
     int BatchNumber,
-    int TermNumber,
+    string TermLabel,
     RecordStatus Status,
     double? Gwa,
     bool PorSubmitted,

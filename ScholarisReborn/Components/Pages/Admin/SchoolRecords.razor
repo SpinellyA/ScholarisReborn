@@ -50,7 +50,7 @@
         <RowTemplate>
             <MudTd>@context.ScholarName</MudTd>
             <MudTd>@context.DegreeProgram</MudTd>
-            <MudTd>@context.TermNumber</MudTd>
+            <MudTd>@context.TermLabel</MudTd>
             <MudTd><MudChip T="string" Size="Size.Small" Color="@StatusColor(context.Status)">@context.Status</MudChip></MudTd>
             <MudTd>@(context.Gwa?.ToString("0.00") ?? "—")</MudTd>
             <MudTd>@(context.ProcessedByName ?? "—")</MudTd>

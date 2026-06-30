@@ -9,7 +9,7 @@ public class GetSubmissionContextQueryHandler : IQueryHandler<GetSubmissionConte
 
     public async Task<SubmissionContextDto> Handle(GetSubmissionContextQuery request, CancellationToken cancellationToken)
     {
-        var empty = new SubmissionContextDto(false, 0, string.Empty, false, false, null, new());
+        var empty = new SubmissionContextDto(false, 0, string.Empty, string.Empty, false, false, null, new());
 
         var scholar = await _context.Scholars.AsNoTracking()
             .FirstOrDefaultAsync(s => s.UserId == request.ScholarUserId, cancellationToken);
@@ -23,7 +23,7 @@ public class GetSubmissionContextQueryHandler : IQueryHandler<GetSubmissionConte
 
         var openTerm = school.Terms.FirstOrDefault(t => t.IsOpen);
         if (openTerm is null)
-            return new SubmissionContextDto(false, 0, school.Name, false, false, null, new());
+            return new SubmissionContextDto(false, 0, string.Empty, school.Name, false, false, null, new());
 
         var records = await _context.TermRecords.AsNoTracking()
             .Where(r => r.ScholarId == scholar.Id)
@@ -49,6 +49,7 @@ public class GetSubmissionContextQueryHandler : IQueryHandler<GetSubmissionConte
         return new SubmissionContextDto(
             true,
             openTerm.TermNumber,
+            TermSystemInfo.Label(school.TermSystem, openTerm.AcademicYearStart, openTerm.PeriodNumber),
             school.Name,
             current?.ProofOfRegistration is not null,
             current?.GradeTranscript is not null,

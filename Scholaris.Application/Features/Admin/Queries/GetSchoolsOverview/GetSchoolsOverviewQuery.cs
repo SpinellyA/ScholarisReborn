@@ -4,7 +4,8 @@ public record SchoolOverviewDto(
     string Name,
     Region Region,
     TermSystem TermSystem,
+    bool HasLogo,
     int ActiveScholars,
-    int? OpenTermNumber);
+    string? OpenTermLabel);
 
 public record GetSchoolsOverviewQuery : IQuery<List<SchoolOverviewDto>>;

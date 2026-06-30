@@ -22,7 +22,7 @@ public class SubmissionFlowTests
         {
             var uow = new UnitOfWork(ctx, publisher.Object);
             var school = School.Create("SC1", "School", "d", Region.NCR, TermSystem.Semestral);
-            var term = school.OpenTerm(1);
+            var term = school.OpenTerm(2025, 1);
             schoolId = school.Id; termId = term.Id;
             uow.SchoolRepository.Add(school);
 
@@ -69,9 +69,9 @@ public class SubmissionFlowTests
         {
             var uow = new UnitOfWork(ctx, publisher.Object);
             var school = School.Create("SC1", "School", "d", Region.NCR, TermSystem.Semestral);
-            var term1 = school.OpenTerm(1);
+            var term1 = school.OpenTerm(2025, 1);
             school.CloseTerm(term1.Id);
-            school.OpenTerm(2);
+            school.OpenTerm(2025, 2);
             schoolId = school.Id;
             uow.SchoolRepository.Add(school);
 

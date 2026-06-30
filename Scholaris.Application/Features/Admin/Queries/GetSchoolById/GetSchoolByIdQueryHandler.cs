@@ -22,9 +22,14 @@ public class GetSchoolByIdQueryHandler : IQueryHandler<GetSchoolByIdQuery, Schoo
             .CountAsync(cancellationToken);
 
         var terms = school.Terms
-            .OrderByDescending(t => t.StartedAt)
-            .Select(t => new TermDto(t.Id, t.TermNumber, t.StartedAt, t.EndedAt, t.IsOpen))
+            .OrderByDescending(t => t.TermNumber)
+            .Select(t => new TermDto(
+                t.Id, t.TermNumber,
+                TermSystemInfo.Label(school.TermSystem, t.AcademicYearStart, t.PeriodNumber),
+                t.StartedAt, t.EndedAt, t.IsOpen))
             .ToList();
+
+        var (suggestedYear, suggestedPeriod) = school.SuggestNextTerm();
 
         return new SchoolDetailsDto(
             school.Id,
@@ -33,6 +38,10 @@ public class GetSchoolByIdQueryHandler : IQueryHandler<GetSchoolByIdQuery, Schoo
             school.Description,
             school.Region,
             school.TermSystem,
+            school.Logo is { Length: > 0 },
+            TermSystemInfo.PeriodsPerYear(school.TermSystem),
+            suggestedYear,
+            suggestedPeriod,
             terms,
             activeScholarsCount);
     }

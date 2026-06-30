@@ -12,6 +12,8 @@ public class SchoolConfiguration : IEntityTypeConfiguration<School>
         builder.Property(s => s.Name).IsRequired().HasMaxLength(256);
         builder.Property(s => s.Region).HasConversion<string>().HasMaxLength(32);
         builder.Property(s => s.TermSystem).HasConversion<string>().HasMaxLength(32);
+        builder.Property(s => s.Logo).HasColumnType("bytea");
+        builder.Property(s => s.LogoContentType).HasMaxLength(128);
 
         builder.Metadata.FindNavigation(nameof(School.Terms))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);

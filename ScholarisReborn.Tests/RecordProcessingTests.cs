@@ -22,7 +22,7 @@ public class RecordProcessingTests
         {
             var uow = new UnitOfWork(ctx, publisher.Object);
             var school = School.Create("SC1", "School", "d", Region.NCR, TermSystem.Semestral);
-            var term = school.OpenTerm(1);
+            var term = school.OpenTerm(2025, 1);
             uow.SchoolRepository.Add(school);
 
             var scholar = Scholar.Create(Guid.NewGuid(), school.Id, Guid.NewGuid(), 2024, "BS CS");

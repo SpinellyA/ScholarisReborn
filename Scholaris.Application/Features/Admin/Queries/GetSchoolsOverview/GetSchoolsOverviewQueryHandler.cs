@@ -16,7 +16,8 @@ public class GetSchoolsOverviewQueryHandler : IQueryHandler<GetSchoolsOverviewQu
             {
                 var active = scholars.Count(s => s.SchoolId == school.Id && s.CurrentStatus.Status == ScholasticStatus.Active);
                 var openTerm = school.Terms.FirstOrDefault(t => t.IsOpen);
-                return new SchoolOverviewDto(school.Id, school.SchoolCode, school.Name, school.Region, school.TermSystem, active, openTerm?.TermNumber);
+                var openLabel = openTerm is null ? null : TermSystemInfo.Label(school.TermSystem, openTerm.AcademicYearStart, openTerm.PeriodNumber);
+                return new SchoolOverviewDto(school.Id, school.SchoolCode, school.Name, school.Region, school.TermSystem, school.Logo is { Length: > 0 }, active, openLabel);
             })
             .ToList();
     }

@@ -23,7 +23,7 @@ else
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
             <div>
                 <MudText Typo="Typo.h5">@_record.ScholarName</MudText>
-                <MudText Typo="Typo.body2">@_record.DegreeProgram &middot; Batch @_record.BatchNumber &middot; @_record.SchoolName &middot; Term @_record.TermNumber</MudText>
+                <MudText Typo="Typo.body2">@_record.DegreeProgram &middot; Batch @_record.BatchNumber &middot; @_record.SchoolName &middot; @_record.TermLabel</MudText>
             </div>
             <MudSpacer />
             <MudChip T="string" Color="@StatusColor(_record.Status)">@_record.Status</MudChip>

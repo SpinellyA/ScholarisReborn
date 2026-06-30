@@ -25,7 +25,7 @@ public class CloseTermCommandHandlerTests
             var uow = new UnitOfWork(context, mockPublisher.Object);
 
             var school = School.Create("SC1", "Test School", "desc", Region.NCR, TermSystem.Semestral);
-            var term = school.OpenTerm(1);
+            var term = school.OpenTerm(2025, 1);
             schoolId = school.Id;
             termId = term.Id;
             uow.SchoolRepository.Add(school);

@@ -3,6 +3,7 @@ public record PriorCourseDto(string CourseCode, double Units);
 public record SubmissionContextDto(
     bool HasOpenTerm,
     int TermNumber,
+    string TermLabel,
     string SchoolName,
     bool PorSubmitted,
     bool GradesSubmitted,

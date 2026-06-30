@@ -7,7 +7,7 @@ public record TermRecordDetailDto(
     string DegreeProgram,
     int BatchNumber,
     string SchoolName,
-    int TermNumber,
+    string TermLabel,
     RecordStatus Status,
     bool GradesRequired,
     string? ProcessedByName,

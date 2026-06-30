@@ -24,8 +24,34 @@ else
         <MudItem xs="12" md="4">
             <MudCard Class="scholaris-card" Elevation="2">
                 <MudCardContent>
-                    <MudText Typo="Typo.h5">@_school.Name</MudText>
-                    <MudText Typo="Typo.body2" Class="mb-3">@_school.SchoolCode</MudText>
+                    <div class="d-flex justify-center mb-3">
+                        @if (_school.HasLogo)
+                        {
+                            <MudAvatar Style="height:96px; width:96px;"><MudImage Src="@($"/school-logo/{_school.Id}?v={_logoVersion}")" /></MudAvatar>
+                        }
+                        else
+                        {
+                            <MudAvatar Color="Color.Primary" Style="height:96px; width:96px; font-size:2rem;">@(_school.Name.Length > 0 ? _school.Name[0] : '?')</MudAvatar>
+                        }
+                    </div>
+                    @if (_isSuperAdmin)
+                    {
+                        <div class="d-flex justify-center mb-3" style="gap:8px;">
+                            <MudFileUpload T="IBrowserFile" FilesChanged="UploadLogoAsync" Accept="image/*">
+                                <ActivatorContent>
+                                    <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Image" Disabled="_busy">
+                                        @(_school.HasLogo ? "Change logo" : "Add logo")
+                                    </MudButton>
+                                </ActivatorContent>
+                            </MudFileUpload>
+                            @if (_school.HasLogo)
+                            {
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="RemoveLogoAsync" Disabled="_busy">Remove</MudButton>
+                            }
+                        </div>
+                    }
+                    <MudText Typo="Typo.h5" Align="Align.Center">@_school.Name</MudText>
+                    <MudText Typo="Typo.body2" Align="Align.Center" Class="mb-3">@_school.SchoolCode</MudText>
 
                     <MudList T="string" Dense="true">
                         <MudListItem T="string" Icon="@Icons.Material.Filled.Place">@_school.Region</MudListItem>
@@ -57,14 +83,23 @@ else
                         {
                             <MudText Typo="Typo.body2" Class="mb-3">No term is open. Open one to start accepting submissions.</MudText>
                             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                <MudNumericField @bind-Value="_termNumber" Label="Term number" Min="1" Style="max-width:160px" />
+                                <MudSelect T="int" @bind-Value="_periodNumber" Label="@($"{_school.TermSystem} period")" Style="max-width:220px">
+                                    @for (var p = 1; p <= _school.PeriodsPerYear; p++)
+                                    {
+                                        <MudSelectItem Value="@p">@TermSystemInfo.Ordinal(p) @TermSystemInfo.PeriodName(_school.TermSystem)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudNumericField @bind-Value="_academicYearStart" Label="Academic year start" Min="2000" Style="max-width:180px" />
                                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenTermAsync" Disabled="_busy">Open term</MudButton>
                             </MudStack>
+                            <MudText Typo="Typo.caption" Class="mt-2">
+                                Will open: <b>@TermSystemInfo.Label(_school.TermSystem, _academicYearStart, _periodNumber)</b>
+                            </MudText>
                         }
                         else
                         {
                             <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-3">
-                                Term @_openTerm.TermNumber is open (started @_openTerm.StartedAt.ToLocalTime().ToString("g")).
+                                @_openTerm.Label is open (started @_openTerm.StartedAt.ToLocalTime().ToString("g")).
                             </MudAlert>
                             <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.LockClock" OnClick="@(() => _showClose = true)" Disabled="_busy">Close term</MudButton>
                             <MudText Typo="Typo.caption" Class="mt-2">
@@ -85,10 +120,10 @@ else
                         {
                             <MudTable Items="_school.Terms.OrderByDescending(t => t.TermNumber)" Hover="true" Elevation="0" Dense="true">
                                 <HeaderContent>
-                                    <MudTh>Term #</MudTh><MudTh>Started</MudTh><MudTh>Ended</MudTh><MudTh>Status</MudTh>
+                                    <MudTh>Term</MudTh><MudTh>Started</MudTh><MudTh>Ended</MudTh><MudTh>Status</MudTh>
                                 </HeaderContent>
                                 <RowTemplate>
-                                    <MudTd>@context.TermNumber</MudTd>
+                                    <MudTd>@context.Label</MudTd>
                                     <MudTd>@context.StartedAt.ToLocalTime().ToString("g")</MudTd>
                                     <MudTd>@(context.EndedAt?.ToLocalTime().ToString("g") ?? "—")</MudTd>
                                     <MudTd><MudChip T="string" Size="Size.Small" Color="@(context.IsOpen ? Color.Success : Color.Default)">@(context.IsOpen ? "Open" : "Closed")</MudChip></MudTd>
@@ -136,7 +171,7 @@ else
 
     <!-- CLOSE TERM CONFIRM -->
     <MudDialog @bind-Visible="_showClose">
-        <TitleContent><MudText Typo="Typo.h6">Close term @_openTerm?.TermNumber?</MudText></TitleContent>
+        <TitleContent><MudText Typo="Typo.h6">Close @_openTerm?.Label?</MudText></TitleContent>
         <DialogContent>
             <MudText>Active scholars who didn't submit this term will be automatically withheld.</MudText>
         </DialogContent>
@@ -152,8 +187,11 @@ else
 
     private SchoolDetailsDto? _school;
     private TermDto? _openTerm;
-    private int _termNumber = 1;
+    private int _academicYearStart = DateTime.Today.Year;
+    private int _periodNumber = 1;
     private bool _busy;
+    private bool _isSuperAdmin;
+    private int _logoVersion;
     private List<BreadcrumbItem> _crumbs = new();
 
     private bool _showEdit, _showDelete, _showClose;
@@ -161,13 +199,27 @@ else
     private Region _eRegion;
     private TermSystem _eTermSystem;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _isSuperAdmin = state.User.IsInRole(ApplicationRoles.SuperAdmin);
+        }
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
         _school = await Mediator.Send(new GetSchoolByIdQuery(SchoolId));
         _openTerm = _school?.Terms.FirstOrDefault(t => t.IsOpen);
-        _termNumber = (_school?.Terms.Select(t => t.TermNumber).DefaultIfEmpty(0).Max() ?? 0) + 1;
+        if (_school is not null)
+        {
+            _academicYearStart = _school.SuggestedAcademicYearStart;
+            _periodNumber = _school.SuggestedPeriodNumber;
+        }
         _crumbs = new()
         {
             new BreadcrumbItem("Schools", "/admin/schools"),
@@ -206,8 +258,32 @@ else
     private async Task OpenTermAsync()
         => await Run(async () =>
         {
-            await Mediator.Send(new OpenTermCommand(SchoolId, _termNumber));
+            await Mediator.Send(new OpenTermCommand(SchoolId, _academicYearStart, _periodNumber));
             Snackbar.Add("Term opened.", Severity.Success);
+            await LoadAsync();
+        });
+
+    private async Task UploadLogoAsync(IBrowserFile? file)
+    {
+        if (file is null) return;
+        await Run(async () =>
+        {
+            using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            await Mediator.Send(new SetSchoolLogoCommand(SchoolId, ms.ToArray(), file.ContentType));
+            _logoVersion++;
+            Snackbar.Add("Logo updated.", Severity.Success);
+            await LoadAsync();
+        });
+    }
+
+    private async Task RemoveLogoAsync()
+        => await Run(async () =>
+        {
+            await Mediator.Send(new SetSchoolLogoCommand(SchoolId, Array.Empty<byte>(), string.Empty));
+            _logoVersion++;
+            Snackbar.Add("Logo removed.", Severity.Success);
             await LoadAsync();
         });
 

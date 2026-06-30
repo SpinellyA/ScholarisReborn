@@ -1,3 +1,3 @@
 using MediatR;
 
-public record OpenTermCommand(Guid SchoolId, int TermNumber) : ICommand;
+public record OpenTermCommand(Guid SchoolId, int AcademicYearStart, int PeriodNumber) : ICommand;

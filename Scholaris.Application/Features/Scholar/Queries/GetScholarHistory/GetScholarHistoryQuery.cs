@@ -1,4 +1,4 @@
-public record ComplianceHistoryItem(int TermNumber, double? Gwa, RecordStatus Status, bool PorSubmitted, bool GradesSubmitted);
+public record ComplianceHistoryItem(string TermLabel, double? Gwa, RecordStatus Status, bool PorSubmitted, bool GradesSubmitted);
 public record StatusHistoryItem(ScholasticStatus Status, DateTime StartTime, DateTime? EndTime, string? Reason);
 public record StipendHistoryItem(double Amount, string Description, DateTime AnnouncedAt, bool? Received);
 

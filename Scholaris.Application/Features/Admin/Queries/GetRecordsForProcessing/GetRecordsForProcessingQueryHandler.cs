@@ -18,7 +18,9 @@ public class GetRecordsForProcessingQueryHandler : IQueryHandler<GetRecordsForPr
         var scholarIds = scholars.Select(s => s.Id).ToHashSet();
 
         var school = await _context.Schools.AsNoTracking().FirstOrDefaultAsync(s => s.Id == request.SchoolId, cancellationToken);
-        var termNumberById = school?.Terms.ToDictionary(t => t.Id, t => t.TermNumber) ?? new();
+        var termLabelById = school?.Terms.ToDictionary(
+            t => t.Id,
+            t => TermSystemInfo.Label(school.TermSystem, t.AcademicYearStart, t.PeriodNumber)) ?? new();
 
         var records = await _context.TermRecords.AsNoTracking()
             .Where(r => scholarIds.Contains(r.ScholarId))
@@ -44,14 +46,14 @@ public class GetRecordsForProcessingQueryHandler : IQueryHandler<GetRecordsForPr
                     UserDisplay.NameOf(scholarUser),
                     scholar.DegreeProgram,
                     scholar.BatchNumber,
-                    termNumberById.GetValueOrDefault(r.TermId),
+                    termLabelById.GetValueOrDefault(r.TermId, string.Empty),
                     r.Status,
                     r.GradeTranscript?.GWA,
                     r.ProofOfRegistration is not null,
                     r.GradeTranscript is not null,
                     r.ProcessedByAdminId.HasValue ? UserDisplay.NameOf(processor) : null);
             })
-            .OrderByDescending(r => r.TermNumber)
+            .OrderByDescending(r => r.TermLabel)
             .ThenBy(r => r.ScholarName)
             .ToList();
     }

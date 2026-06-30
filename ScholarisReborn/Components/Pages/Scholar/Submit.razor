@@ -25,7 +25,7 @@ else if (_ctx is null || !_ctx.HasOpenTerm)
 else
 {
     <MudText Typo="Typo.body1" Class="mb-4">
-        @_ctx.SchoolName &middot; Term @_ctx.TermNumber
+        @_ctx.SchoolName &middot; @_ctx.TermLabel
         @if (_ctx.Status is not null)
         {
             <MudChip T="string" Size="Size.Small" Class="ml-2" Color="@StatusColor(_ctx.Status.Value)">@_ctx.Status</MudChip>

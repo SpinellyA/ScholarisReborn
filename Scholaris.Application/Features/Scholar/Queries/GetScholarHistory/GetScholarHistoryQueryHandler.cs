@@ -17,20 +17,23 @@ public class GetScholarHistoryQueryHandler : IQueryHandler<GetScholarHistoryQuer
             return empty;
 
         var school = await _context.Schools.AsNoTracking().FirstOrDefaultAsync(s => s.Id == scholar.SchoolId, cancellationToken);
-        var termNumberById = school?.Terms.ToDictionary(t => t.Id, t => t.TermNumber) ?? new();
+        var termLabelById = school?.Terms.ToDictionary(
+            t => t.Id,
+            t => TermSystemInfo.Label(school.TermSystem, t.AcademicYearStart, t.PeriodNumber)) ?? new();
+        var termOrderById = school?.Terms.ToDictionary(t => t.Id, t => t.TermNumber) ?? new();
 
         var records = await _context.TermRecords.AsNoTracking()
             .Where(r => r.ScholarId == scholar.Id)
             .ToListAsync(cancellationToken);
 
         var compliance = records
+            .OrderByDescending(r => termOrderById.GetValueOrDefault(r.TermId))
             .Select(r => new ComplianceHistoryItem(
-                termNumberById.GetValueOrDefault(r.TermId),
+                termLabelById.GetValueOrDefault(r.TermId, string.Empty),
                 r.GradeTranscript?.GWA,
                 r.Status,
                 r.ProofOfRegistration is not null,
                 r.GradeTranscript is not null))
-            .OrderByDescending(c => c.TermNumber)
             .ToList();
 
         var statuses = scholar.Statuses

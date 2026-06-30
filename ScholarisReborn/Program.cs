@@ -79,4 +79,13 @@ app.MapGet("/files/{id:guid}", async (Guid id, MyDbContext db, ClaimsPrincipal u
     return Results.File(file.Content, file.ContentType, file.FileName);
 }).RequireAuthorization();
 
+// School logos aren't confidential — any authenticated user can view them (lists, dashboards).
+app.MapGet("/school-logo/{id:guid}", async (Guid id, MyDbContext db) =>
+{
+    var school = await db.Schools.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
+    if (school?.Logo is null || school.Logo.Length == 0)
+        return Results.NotFound();
+    return Results.File(school.Logo, school.LogoContentType ?? "image/png");
+}).RequireAuthorization();
+
 app.Run();

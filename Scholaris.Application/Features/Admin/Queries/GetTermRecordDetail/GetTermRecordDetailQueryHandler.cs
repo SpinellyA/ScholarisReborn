@@ -23,7 +23,10 @@ public class GetTermRecordDetailQueryHandler : IQueryHandler<GetTermRecordDetail
 
         var scholarUser = scholar is null ? null : users.FirstOrDefault(u => u.Id == scholar.UserId);
         var processor = record.ProcessedByAdminId.HasValue ? users.FirstOrDefault(u => u.Id == record.ProcessedByAdminId.Value) : null;
-        var termNumber = school?.Terms.FirstOrDefault(t => t.Id == record.TermId)?.TermNumber ?? 0;
+        var term = school?.Terms.FirstOrDefault(t => t.Id == record.TermId);
+        var termLabel = term is null || school is null
+            ? string.Empty
+            : TermSystemInfo.Label(school.TermSystem, term.AcademicYearStart, term.PeriodNumber);
 
         var registrationCourses = record.ProofOfRegistration?.Courses
             .Select(c => new DetailCourseDto(c.CourseCode, c.Units)).ToList() ?? new();
@@ -46,7 +49,7 @@ public class GetTermRecordDetailQueryHandler : IQueryHandler<GetTermRecordDetail
             scholar?.DegreeProgram ?? string.Empty,
             scholar?.BatchNumber ?? 0,
             school?.Name ?? string.Empty,
-            termNumber,
+            termLabel,
             record.Status,
             record.GradesRequired,
             record.ProcessedByAdminId.HasValue ? UserDisplay.NameOf(processor) : null,

@@ -10,7 +10,7 @@ public class OpenTermCommandHandler : ICommandHandler<OpenTermCommand>
         var school = await _uow.SchoolRepository.GetById(command.SchoolId)
             ?? throw new DomainException("School not found.");
 
-        school.OpenTerm(command.TermNumber);
+        school.OpenTerm(command.AcademicYearStart, command.PeriodNumber);
 
         // No Update() call: 'school' is tracked (loaded via GetById), so EF detects the new Term as
         // an insert. Calling Update() would force the whole graph to Modified and try to UPDATE the

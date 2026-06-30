@@ -47,7 +47,7 @@ public class OpenTermHandlerTests
             using (var ctx = new MyDbContext(PgOptions()))
             {
                 var uow = new UnitOfWork(ctx, publisher.Object);
-                await new OpenTermCommandHandler(uow).Handle(new OpenTermCommand(schoolId, 1), CancellationToken.None);
+                await new OpenTermCommandHandler(uow).Handle(new OpenTermCommand(schoolId, 2025, 1), CancellationToken.None);
             }
 
             using (var ctx = new MyDbContext(PgOptions()))
